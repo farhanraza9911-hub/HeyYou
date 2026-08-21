@@ -1,0 +1,398 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "HeyYou Admin",
+      "email": "farhanraza9911@gmail.com",
+      "password": "$2b$10$Py07nPgltQd8bOqI2E5P6ORn1Gn.egluu8Mu2NQ/odOf3GFxbc2iG",
+      "avatar": "",
+      "bio": "",
+      "role": "admin",
+      "status": "online",
+      "created_at": "2026-08-16T16:55:21.084Z",
+      "settings": {
+        "theme": "light",
+        "notifications": true,
+        "message_notifications": true,
+        "call_notifications": true,
+        "sound": true,
+        "read_receipts": true,
+        "last_seen": true,
+        "online_status": true,
+        "allow_audio_calls": true,
+        "allow_video_calls": true
+      },
+      "blocked_users": [],
+      "contacts": [
+        2,
+        3
+      ]
+    },
+    {
+      "id": 2,
+      "name": "FARHAN RAZA",
+      "email": "farhanraza9911@gmail.com",
+      "password": "$2b$10$AvoeHe7tZkW9C35rAZz1d.Re2Fpbm7XxoTFSOU2UGLPn/Bzo3UqTe",
+      "avatar": "/uploads/1786969568168-f7ea15c45b53.png",
+      "bio": "tester 2",
+      "role": "user",
+      "status": "online",
+      "created_at": "2026-08-17T11:18:01.941Z",
+      "settings": {
+        "theme": "light",
+        "notifications": true,
+        "message_notifications": true,
+        "call_notifications": true,
+        "sound": true,
+        "read_receipts": true,
+        "last_seen": true,
+        "online_status": true,
+        "allow_audio_calls": true,
+        "allow_video_calls": true
+      },
+      "blocked_users": [],
+      "contacts": []
+    },
+    {
+      "id": 3,
+      "name": "ali",
+      "email": "ali@test.com",
+      "password": "$2b$10$3zI6hIjujrMqa8AiStmWbOmtQr0fUbrCX0/9nEEedYJ.o1mKDXUPu",
+      "avatar": "/uploads/1786967393357-d3469b4d061b.jpg",
+      "bio": "i am a tester",
+      "role": "user",
+      "status": "online",
+      "created_at": "2026-08-17T11:20:12.621Z",
+      "settings": {
+        "theme": "light",
+        "notifications": true,
+        "message_notifications": true,
+        "call_notifications": true,
+        "sound": true,
+        "read_receipts": true,
+        "last_seen": true,
+        "online_status": true,
+        "allow_audio_calls": true,
+        "allow_video_calls": true
+      },
+      "blocked_users": [],
+      "contacts": [
+        4
+      ]
+    },
+    {
+      "id": 4,
+      "name": "ahmed",
+      "email": "farhanraza1234567@gmail.com",
+      "phone": "+923087321258",
+      "password": "$2b$10$K9KCvQQ42ujozur.1w2Szuw2r.euYum/yCxNgYi1BPalhjVBfWjyi",
+      "avatar": "",
+      "bio": "",
+      "role": "user",
+      "status": "online",
+      "created_at": "2026-08-21T02:00:49.127Z",
+      "settings": {
+        "theme": "light",
+        "notifications": true,
+        "message_notifications": true,
+        "call_notifications": true,
+        "sound": true,
+        "read_receipts": true,
+        "last_seen": true,
+        "online_status": true,
+        "allow_audio_calls": true,
+        "allow_video_calls": true
+      },
+      "blocked_users": [],
+      "contacts": []
+    }
+  ],
+  "messages": [
+    {
+      "id": 1,
+      "sender_id": 3,
+      "receiver_id": 2,
+      "text": "hello",
+      "file_url": "",
+      "file_name": "",
+      "file_type": "",
+      "sender_name": "ali",
+      "created_at": "2026-08-17T11:21:00.695Z"
+    },
+    {
+      "id": 2,
+      "sender_id": 3,
+      "receiver_id": 2,
+      "text": "",
+      "file_url": "/uploads/1786965739338-58d1bbf74bd1.png",
+      "file_name": "ChatGPT Image Aug 13, 2026, 03_42_01 PM.png",
+      "file_type": "image/png",
+      "sender_name": "ali",
+      "created_at": "2026-08-17T11:22:19.372Z"
+    },
+    {
+      "id": 3,
+      "sender_id": 3,
+      "receiver_id": 2,
+      "text": "",
+      "file_url": "/uploads/1786966369936-41534914b1a8.mp3",
+      "file_name": "01 - Mathabnesh.mp3",
+      "file_type": "audio/mpeg",
+      "sender_name": "ali",
+      "created_at": "2026-08-17T11:32:50.380Z"
+    },
+    {
+      "id": 4,
+      "sender_id": 3,
+      "receiver_id": 2,
+      "text": "",
+      "file_url": "/uploads/1786966535663-dae9337e5a59.mp4",
+      "file_name": "WhatsApp Video 2026-08-14 at 18.16.16.mp4",
+      "file_type": "video/mp4",
+      "sender_name": "ali",
+      "created_at": "2026-08-17T11:35:35.757Z"
+    },
+    {
+      "id": 5,
+      "sender_id": 3,
+      "receiver_id": 2,
+      "text": "",
+      "file_url": "/uploads/1786966568110-1470112a07c8.docx",
+      "file_name": "FARHAN RAZA  cv for job.docx",
+      "file_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "sender_name": "ali",
+      "created_at": "2026-08-17T11:36:08.119Z"
+    },
+    {
+      "id": 6,
+      "sender_id": 3,
+      "receiver_id": 2,
+      "text": "",
+      "file_url": "/uploads/1786966598407-5d8716058be4.xlsx",
+      "file_name": "SALE SHEET.xlsx",
+      "file_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "sender_name": "ali",
+      "created_at": "2026-08-17T11:36:38.415Z"
+    },
+    {
+      "id": 7,
+      "sender_id": 3,
+      "receiver_id": 2,
+      "text": "",
+      "file_url": "/uploads/1786967147052-a6cd39915566.ods",
+      "file_name": "scores.ods",
+      "file_type": "application/vnd.oasis.opendocument.spreadsheet",
+      "sender_name": "ali",
+      "created_at": "2026-08-17T11:45:47.073Z"
+    },
+    {
+      "id": 8,
+      "sender_id": 3,
+      "receiver_id": 2,
+      "text": "hi",
+      "file_url": "",
+      "file_name": "",
+      "file_type": "",
+      "sender_name": "ali",
+      "created_at": "2026-08-17T14:00:15.599Z"
+    },
+    {
+      "id": 9,
+      "sender_id": 2,
+      "receiver_id": 3,
+      "text": "hello",
+      "file_url": "",
+      "file_name": "",
+      "file_type": "",
+      "sender_name": "FARHAN RAZA",
+      "created_at": "2026-08-17T14:00:34.126Z"
+    },
+    {
+      "id": 10,
+      "sender_id": 3,
+      "receiver_id": 2,
+      "text": "hor r u",
+      "file_url": "",
+      "file_name": "",
+      "file_type": "",
+      "sender_name": "ali",
+      "created_at": "2026-08-17T14:00:49.072Z"
+    },
+    {
+      "id": 11,
+      "sender_id": 2,
+      "receiver_id": 3,
+      "text": "good",
+      "file_url": "",
+      "file_name": "",
+      "file_type": "",
+      "sender_name": "FARHAN RAZA",
+      "created_at": "2026-08-17T14:00:55.716Z"
+    },
+    {
+      "id": 12,
+      "sender_id": 2,
+      "receiver_id": 3,
+      "text": "h",
+      "file_url": "",
+      "file_name": "",
+      "file_type": "",
+      "sender_name": "FARHAN RAZA",
+      "created_at": "2026-08-17T18:57:10.675Z"
+    },
+    {
+      "id": 13,
+      "sender_id": 3,
+      "receiver_id": 2,
+      "text": "y",
+      "file_url": "",
+      "file_name": "",
+      "file_type": "",
+      "sender_name": "ali",
+      "created_at": "2026-08-17T18:57:20.408Z"
+    },
+    {
+      "id": 14,
+      "sender_id": 2,
+      "receiver_id": 3,
+      "text": "gff",
+      "file_url": "",
+      "file_name": "",
+      "file_type": "",
+      "sender_name": "FARHAN RAZA",
+      "created_at": "2026-08-19T18:37:30.815Z"
+    },
+    {
+      "id": 15,
+      "sender_id": 2,
+      "receiver_id": 3,
+      "text": "hi",
+      "file_url": "",
+      "file_name": "",
+      "file_type": "",
+      "sender_name": "FARHAN RAZA",
+      "created_at": "2026-08-20T17:04:30.129Z"
+    },
+    {
+      "id": 16,
+      "sender_id": 3,
+      "receiver_id": 2,
+      "text": "hello",
+      "file_url": "",
+      "file_name": "",
+      "file_type": "",
+      "sender_name": "ali",
+      "created_at": "2026-08-20T17:04:39.065Z"
+    },
+    {
+      "id": 17,
+      "sender_id": 2,
+      "receiver_id": 1,
+      "text": "ak or bt nya user register kesy krey ga register ka option e ni aa ra",
+      "file_url": "",
+      "file_name": "",
+      "file_type": "",
+      "sender_name": "FARHAN RAZA",
+      "created_at": "2026-08-21T01:17:44.744Z"
+    }
+  ],
+  "reports": [],
+  "seq": {
+    "users": 4,
+    "messages": 17,
+    "reports": 0,
+    "statuses": 27,
+    "status_views": 8
+  },
+  "statuses": [
+    {
+      "id": 24,
+      "user_id": 3,
+      "user_name": "ali",
+      "user_avatar": "/uploads/1786967393357-d3469b4d061b.jpg",
+      "type": "image",
+      "text": "",
+      "file_url": "/uploads/1787244157899-c83bd14b4f099fae.png",
+      "file_name": "ChatGPT Image Aug 13, 2026, 03_42_01 PM.png",
+      "file_type": "image/png",
+      "media_url": "/uploads/1787244157899-c83bd14b4f099fae.png",
+      "media_name": "ChatGPT Image Aug 13, 2026, 03_42_01 PM.png",
+      "media_type": "image/png",
+      "created_at": "2026-08-20T16:42:37.906Z",
+      "expires_at": "2026-08-21T16:42:37.906Z",
+      "views": 1
+    },
+    {
+      "id": 26,
+      "user_id": 2,
+      "user_name": "FARHAN RAZA",
+      "user_avatar": "/uploads/1786969568168-f7ea15c45b53.png",
+      "type": "video",
+      "text": "",
+      "file_url": "/uploads/1787245126612-5bacd7bb7d65a575.mp4",
+      "file_name": "WhatsApp Video 2026-08-14 at 18.16.16.mp4",
+      "file_type": "video/mp4",
+      "media_url": "/uploads/1787245126612-5bacd7bb7d65a575.mp4",
+      "media_name": "WhatsApp Video 2026-08-14 at 18.16.16.mp4",
+      "media_type": "video/mp4",
+      "created_at": "2026-08-20T16:58:46.678Z",
+      "expires_at": "2026-08-21T16:58:46.678Z",
+      "views": 2
+    },
+    {
+      "id": 27,
+      "user_id": 1,
+      "user_name": "HeyYou Admin",
+      "user_avatar": "",
+      "type": "video",
+      "text": "",
+      "file_url": "/uploads/1787250719569-51c752dc5d09ee10.mp4",
+      "file_name": "WhatsApp Video 2026-08-14 at 18.16.16.mp4",
+      "file_type": "video/mp4",
+      "media_url": "/uploads/1787250719569-51c752dc5d09ee10.mp4",
+      "media_name": "WhatsApp Video 2026-08-14 at 18.16.16.mp4",
+      "media_type": "video/mp4",
+      "created_at": "2026-08-20T18:31:59.643Z",
+      "expires_at": "2026-08-21T18:31:59.643Z",
+      "views": 3
+    }
+  ],
+  "status_views": [
+    {
+      "id": 3,
+      "status_id": 24,
+      "viewer_id": 2,
+      "created_at": "2026-08-20T16:43:11.464Z"
+    },
+    {
+      "id": 4,
+      "status_id": 26,
+      "viewer_id": 1,
+      "created_at": "2026-08-20T17:13:23.060Z"
+    },
+    {
+      "id": 5,
+      "status_id": 26,
+      "viewer_id": 3,
+      "created_at": "2026-08-20T19:13:03.629Z"
+    },
+    {
+      "id": 6,
+      "status_id": 27,
+      "viewer_id": 3,
+      "created_at": "2026-08-20T19:13:07.460Z"
+    },
+    {
+      "id": 7,
+      "status_id": 27,
+      "viewer_id": 2,
+      "created_at": "2026-08-21T01:15:24.552Z"
+    },
+    {
+      "id": 8,
+      "status_id": 27,
+      "viewer_id": 4,
+      "created_at": "2026-08-21T02:42:06.735Z"
+    }
+  ]
+}

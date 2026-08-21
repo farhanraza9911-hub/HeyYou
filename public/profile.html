@@ -1,0 +1,572 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>HeyYou - Profile</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f1f3f6;
+}
+
+.header {
+    height: 60px;
+    background: #128c7e;
+    color: white;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 20px;
+}
+
+.logo {
+    font-size: 25px;
+    font-weight: bold;
+}
+
+.header a {
+    color: #128c7e;
+    background: white;
+    text-decoration: none;
+
+    padding: 8px 15px;
+    border-radius: 6px;
+}
+
+.profile-container {
+    width: 420px;
+    max-width: 95%;
+
+    margin: 40px auto;
+
+    background: white;
+
+    padding: 30px;
+
+    border-radius: 15px;
+
+    box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+
+    text-align: center;
+}
+
+.profile-picture {
+    width: 130px;
+    height: 130px;
+
+    margin: 0 auto 20px;
+
+    border-radius: 50%;
+
+    background: #128c7e;
+
+    color: white;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 50px;
+    font-weight: bold;
+
+    overflow: hidden;
+}
+
+.profile-picture img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+.file-label {
+    display: inline-block;
+
+    background: #128c7e;
+
+    color: white;
+
+    padding: 10px 18px;
+
+    border-radius: 7px;
+
+    cursor: pointer;
+
+    margin-bottom: 25px;
+}
+
+#avatar {
+    display: none;
+}
+
+input,
+textarea {
+    width: 100%;
+
+    padding: 12px;
+
+    margin-bottom: 15px;
+
+    border: 1px solid #ddd;
+
+    border-radius: 8px;
+
+    font-size: 15px;
+
+    outline: none;
+}
+
+textarea {
+    height: 100px;
+
+    resize: vertical;
+}
+
+button {
+    width: 100%;
+
+    padding: 13px;
+
+    background: #128c7e;
+
+    color: white;
+
+    border: none;
+
+    border-radius: 8px;
+
+    font-size: 16px;
+
+    cursor: pointer;
+}
+
+button:hover {
+    opacity: .9;
+}
+
+#message {
+    min-height: 20px;
+
+    margin-top: 15px;
+}
+
+.email {
+    color: #777;
+
+    margin-bottom: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<header class="header">
+
+    <div class="logo">
+        HeyYou
+    </div>
+
+    <a href="/home.html">
+        ← Back to Chat
+    </a>
+
+</header>
+
+
+<div class="profile-container">
+
+    <div
+        class="profile-picture"
+        id="profilePicture">
+
+        U
+
+    </div>
+
+
+    <label
+        class="file-label"
+        for="avatar">
+
+        📷 Change Profile Picture
+
+    </label>
+
+    <input
+        type="file"
+        id="avatar"
+        accept="image/*"
+    >
+
+
+    <h2 id="profileName">
+        Loading...
+    </h2>
+
+    <div
+        class="email"
+        id="profileEmail">
+        Loading...
+    </div>
+
+
+    <form id="profileForm">
+
+        <input
+            type="text"
+            id="name"
+            placeholder="Your Name"
+            required
+        >
+
+
+        <textarea
+            id="bio"
+            placeholder="Write something about yourself...">
+        </textarea>
+
+
+        <button type="submit">
+            Save Profile
+        </button>
+
+    </form>
+
+
+    <div id="message"></div>
+
+</div>
+
+
+<script>
+
+let currentUser = null;
+
+
+/* =========================
+   LOAD PROFILE
+========================= */
+
+async function loadProfile() {
+
+    try {
+
+        const response =
+            await fetch("/api/me");
+
+
+        if (!response.ok) {
+
+            window.location.href = "/";
+
+            return;
+
+        }
+
+
+        currentUser =
+            await response.json();
+
+
+        document.getElementById(
+            "profileName"
+        ).innerText =
+            currentUser.name;
+
+
+        document.getElementById(
+            "profileEmail"
+        ).innerText =
+            currentUser.email;
+
+
+        document.getElementById(
+            "name"
+        ).value =
+            currentUser.name;
+
+
+        document.getElementById(
+            "bio"
+        ).value =
+            currentUser.bio || "";
+
+
+        showAvatar();
+
+    }
+
+    catch(error) {
+
+        console.log(error);
+
+    }
+
+}
+
+
+/* =========================
+   SHOW AVATAR
+========================= */
+
+function showAvatar() {
+
+    const picture =
+        document.getElementById(
+            "profilePicture"
+        );
+
+
+    if (currentUser.avatar) {
+
+        picture.innerHTML = `
+
+            <img
+                src="${currentUser.avatar}"
+                alt="Profile Picture"
+            >
+
+        `;
+
+    }
+
+    else {
+
+        picture.innerText =
+            currentUser.name
+                .charAt(0)
+                .toUpperCase();
+
+    }
+
+}
+
+
+/* =========================
+   PREVIEW IMAGE
+========================= */
+
+document.getElementById(
+    "avatar"
+).addEventListener(
+    "change",
+    function() {
+
+        const file =
+            this.files[0];
+
+
+        if (!file)
+            return;
+
+
+        if (
+            !file.type.startsWith(
+                "image/"
+            )
+        ) {
+
+            alert(
+                "Please select an image."
+            );
+
+            this.value = "";
+
+            return;
+
+        }
+
+
+        const reader =
+            new FileReader();
+
+
+        reader.onload =
+            function(e) {
+
+                document.getElementById(
+                    "profilePicture"
+                ).innerHTML = `
+
+                    <img
+                        src="${e.target.result}"
+                        alt="Profile Picture"
+                    >
+
+                `;
+
+            };
+
+
+        reader.readAsDataURL(
+            file
+        );
+
+    }
+);
+
+
+/* =========================
+   SAVE PROFILE
+========================= */
+
+document.getElementById(
+    "profileForm"
+).addEventListener(
+    "submit",
+    async function(e) {
+
+        e.preventDefault();
+
+
+        const message =
+            document.getElementById(
+                "message"
+            );
+
+
+        message.style.color =
+            "#128c7e";
+
+        message.innerText =
+            "Saving...";
+
+
+        const formData =
+            new FormData();
+
+
+        formData.append(
+            "name",
+            document.getElementById(
+                "name"
+            ).value
+        );
+
+
+        formData.append(
+            "bio",
+            document.getElementById(
+                "bio"
+            ).value
+        );
+
+
+        const avatar =
+            document.getElementById(
+                "avatar"
+            ).files[0];
+
+
+        if (avatar) {
+
+            formData.append(
+                "avatar",
+                avatar
+            );
+
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/api/profile",
+                    {
+
+                        method:
+                            "POST",
+
+                        body:
+                            formData
+
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (
+                !response.ok ||
+                data.error
+            ) {
+
+                message.style.color =
+                    "red";
+
+                message.innerText =
+                    data.error ||
+                    "Profile update failed.";
+
+                return;
+
+            }
+
+
+            currentUser =
+                data;
+
+
+            document.getElementById(
+                "profileName"
+            ).innerText =
+                data.name;
+
+
+            document.getElementById(
+                "profileEmail"
+            ).innerText =
+                data.email;
+
+
+            showAvatar();
+
+
+            message.style.color =
+                "green";
+
+            message.innerText =
+                "Profile updated successfully!";
+
+
+        }
+
+        catch(error) {
+
+            console.log(error);
+
+            message.style.color =
+                "red";
+
+            message.innerText =
+                "Server connection error.";
+
+        }
+
+    }
+);
+
+
+/* =========================
+   START
+========================= */
+
+loadProfile();
+
+</script>
+
+</body>
+</html>
