@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 
@@ -126,13 +126,23 @@ button{
     text-overflow:ellipsis;
 }
 
-.header button{
+.header-settings-button{
+    width:42px;
+    height:42px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
     background:#fff;
     color:#128c7e;
     border:0;
-    padding:8px 15px;
-    border-radius:7px;
-    font-weight:bold;
+    border-radius:50%;
+    font-size:21px;
+    padding:0;
+    box-shadow:0 1px 4px #0002;
+}
+
+.header-settings-button:active{
+    transform:scale(.96);
 }
 
 /* =====================================================
@@ -229,6 +239,67 @@ body.dark .search input{
     background:#111b21;
     color:#fff;
     border-color:#374045;
+}
+
+/* =====================================================
+   CONTACT SEARCH / ADD CONTACT
+===================================================== */
+
+.contacts-title{
+    padding:14px 18px 8px;
+    font-size:16px;
+    font-weight:bold;
+    color:#555;
+    background:#f7f8fa;
+    border-bottom:1px solid #eee;
+}
+
+body.dark .contacts-title{
+    color:#d7dde0;
+    background:#111b21;
+    border-color:#374045;
+}
+
+.user-main{
+    display:flex;
+    align-items:center;
+    flex:1;
+    min-width:0;
+}
+
+.user-arrow{
+    color:#777;
+    font-size:28px;
+    line-height:1;
+    margin-left:10px;
+}
+
+.add-contact-btn{
+    flex-shrink:0;
+    border:0;
+    background:#128c7e;
+    color:#fff;
+    padding:9px 13px;
+    border-radius:8px;
+    font-weight:bold;
+    margin-left:10px;
+}
+
+.add-contact-btn:disabled{
+    opacity:.65;
+    cursor:default;
+}
+
+.mobile-back{
+    display:none;
+    border:0;
+    background:transparent;
+    color:#128c7e;
+    font-size:28px;
+    width:42px;
+    height:42px;
+    padding:0;
+    margin-right:4px;
 }
 
 /* =====================================================
@@ -843,6 +914,25 @@ body.dark .status-textarea{
     font-size:22px;
 }
 
+.status-delete{
+    min-width:40px;
+    height:40px;
+    padding:0 12px;
+    border:0;
+    border-radius:20px;
+    background:#d93025;
+    color:#fff;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+    margin-left:auto;
+    margin-right:8px;
+}
+.status-delete:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+}
+
 /* =====================================================
    CALL
 ===================================================== */
@@ -1153,7 +1243,6 @@ body.dark .settings-item-subtitle{
     font-size:20px;
 }
 
-
 /* =====================================================
    SETTINGS PAGE
 ===================================================== */
@@ -1288,13 +1377,48 @@ body.dark .about-created{
 }
 
 /* =====================================================
+   CALL HISTORY / BOTTOM NAV
+===================================================== */
+
+.history-panel{
+    display:none;
+    flex:1;
+    min-height:0;
+    overflow-y:auto;
+    background:#fff;
+}
+
+body.dark .history-panel{background:#202c33;}
+.history-panel.active{display:block;}
+.history-title{padding:14px 18px;font-size:17px;font-weight:bold;border-bottom:1px solid #eee;}
+body.dark .history-title{border-color:#374045;}
+.call-history-item{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid #eee;cursor:pointer;}
+body.dark .call-history-item{border-color:#374045;}
+.call-history-icon{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#e8f5f3;font-size:19px;flex-shrink:0;}
+body.dark .call-history-icon{background:#30434d;}
+.call-history-info{flex:1;min-width:0;}
+.call-history-name{font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.call-history-meta{margin-top:4px;color:#777;font-size:12px;}
+body.dark .call-history-meta{color:#aebac1;}
+.bottom-nav{height:66px;flex-shrink:0;display:flex;border-top:1px solid #ddd;background:#fff;z-index:30;}
+body.dark .bottom-nav{background:#202c33;border-color:#374045;}
+.bottom-nav-item{flex:1;border:0;background:transparent;color:#777;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:bold;}
+.bottom-nav-item.active{color:#128c7e;}
+.bottom-nav-icon{font-size:21px;line-height:1;}
+.call-control-button{width:58px !important;height:58px !important;padding:0 !important;border-radius:50% !important;background:#ffffffdd !important;color:#222 !important;font-size:23px !important;margin:6px !important;display:inline-flex;align-items:center;justify-content:center;}
+.end-call{width:64px !important;height:64px !important;padding:0 !important;border-radius:50% !important;background:#d93025 !important;color:#fff !important;font-size:27px !important;display:inline-flex;align-items:center;justify-content:center;margin:6px !important;}
+#remoteAudio{display:none;}
+.call-screen.audio-call #remoteVideo{display:none;}
+.call-screen.audio-call #myVideo{display:none;}
+
+/* =====================================================
    RESPONSIVE
 ===================================================== */
 
 @media(max-width:800px){
 
     .sidebar{
-        width:280px;
+        width:320px;
     }
 
     .message{
@@ -1308,74 +1432,168 @@ body.dark .about-created{
 
 @media(max-width:600px){
 
+    html,
+    body{
+        overflow:hidden;
+    }
+
     .header{
         height:58px;
+        padding:0 14px;
     }
 
     .container{
         height:calc(100vh - 58px);
+        display:flex;
     }
 
     .sidebar{
-        width:82px;
+        width:100%;
+        height:100%;
+        border-right:0;
+        display:flex;
+        position:relative;
     }
 
-    .sidebar-tab{
-        font-size:0;
+    .sidebar-tabs{
+        display:none;
     }
 
-    .sidebar-tab:first-child:before{
-        content:"💬";
-        font-size:20px;
-    }
-
-    .sidebar-tab:last-child:before{
-        content:"⭕";
-        font-size:20px;
+    #chatsPanel{
+        width:100%;
+        height:100%;
     }
 
     .search{
-        padding:8px;
+        position:relative;
+        padding:14px 14px 10px;
+        border-bottom:1px solid #e5e7ea;
     }
 
     .search input{
-        font-size:0;
+        width:100%;
+        height:58px;
+        padding:0 18px;
+        font-size:17px;
+        border:1px solid #ddd;
+        border-radius:30px;
+        background:#fff;
+    }
+
+    body.dark .search input{
+        background:#202c33;
+        color:#fff;
+        border-color:#374045;
+    }
+
+    .contacts-title{
+        padding:12px 20px;
+        font-size:16px;
+    }
+
+    .users-list{
+        width:100%;
+        overflow-y:auto;
+        padding-bottom:4px;
     }
 
     .user{
-        padding:10px;
-        justify-content:center;
+        min-height:78px;
+        padding:13px 18px;
+        justify-content:flex-start;
     }
 
     .avatar{
-        margin:0;
+        width:58px;
+        height:58px;
+        min-width:58px;
+        margin-right:15px;
     }
 
     .user-info{
+        display:block;
+        flex:1;
+        min-width:0;
+    }
+
+    .user-name{
+        font-size:18px;
+    }
+
+    .status{
+        font-size:14px;
+        margin-top:5px;
+    }
+
+    .user-arrow{
+        display:block;
+    }
+
+    .add-contact-btn{
+        padding:9px 12px;
+        font-size:13px;
+        margin-left:8px;
+    }
+
+    .history-panel{
+        width:100%;
+        height:100%;
+    }
+
+    .bottom-nav{
+        width:100%;
+        height:68px;
+    }
+
+    .bottom-nav-icon{
+        font-size:22px;
+    }
+
+    .call-control-button{
+        width:54px !important;
+        height:54px !important;
+        font-size:22px !important;
+    }
+
+    .end-call{
+        width:62px !important;
+        height:62px !important;
+        font-size:26px !important;
+    }
+
+    .chat{
+        display:none;
+        width:100%;
+        min-width:100%;
+        height:100%;
+    }
+
+    body.mobile-chat-open .sidebar{
         display:none;
     }
 
-    .status-me,
-    .status-user{
-        justify-content:center;
-        padding:10px 5px;
+    body.mobile-chat-open .chat{
+        display:flex;
     }
 
-    .status-details{
-        display:none;
-    }
-
-    #myName{
-        display:none;
-    }
-
-    .header button{
-        padding:7px 9px;
-        font-size:12px;
+    .mobile-back{
+        display:block;
     }
 
     .chat-header{
+        height:64px;
         padding:0 8px;
+    }
+
+    .chat-user-box{
+        flex:1;
+        min-width:0;
+    }
+
+    .chat-avatar{
+        width:42px;
+        height:42px;
+        min-width:42px;
     }
 
     .call-button{
@@ -1419,32 +1637,147 @@ body.dark .about-created{
 }
 
 
-/* STATUS OWNER ACTIONS */
-.status-owner-actions{display:flex;gap:8px;align-items:center;margin-left:auto;margin-right:8px}
-.status-owner-actions button{border:0;padding:7px 11px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
-.status-edit-button{background:#128c7e;color:#fff}
-.status-delete-button{background:#dc3545;color:#fff}
-.status-owner-actions button:hover{opacity:.9}
-.add-contact-btn {
-    margin-left:auto;
-    border:0;
-    background:#128c7e;
-    color:#fff;
-    padding:7px 10px;
-    border-radius:7px;
-    font-size:12px;
-    font-weight:bold;
-    cursor:pointer;
+/* =====================================================
+   CONTACTS-FIRST FULL-SCREEN LAYOUT
+   Default: contacts/search/footer only.
+   Chat opens full-screen only after a contact is selected.
+===================================================== */
+
+.container{
+    width:100%;
+    height:calc(100vh - 62px);
+    display:block;
 }
 
-.add-contact-btn:hover {
-    background:#075e54;
+.sidebar{
+    width:100%;
+    height:100%;
+    border-right:0;
+    display:flex;
+    flex-direction:column;
 }
 
-body.dark .add-contact-btn {
-    background:#25d366;
-    color:#111;
+#chatsPanel{
+    width:100%;
+    flex:1;
+    min-height:0;
 }
+
+.search{
+    width:100%;
+    padding:12px 18px;
+}
+
+.search input{
+    width:100%;
+}
+
+.users-list{
+    width:100%;
+    flex:1;
+    min-height:0;
+    overflow-y:auto;
+}
+
+.user{
+    width:100%;
+}
+
+.bottom-nav{
+    width:100%;
+    flex-shrink:0;
+}
+
+/* Chat is hidden until a contact is selected. */
+.chat{
+    display:none;
+    width:100%;
+    height:100%;
+    min-width:0;
+}
+
+body.chat-open .sidebar{
+    display:none;
+}
+
+body.chat-open .chat{
+    display:flex;
+}
+
+/* Chat must occupy the complete area below the main header. */
+body.chat-open .chat-header{
+    width:100%;
+}
+
+body.chat-open .messages{
+    width:100%;
+}
+
+body.chat-open .composer{
+    width:100%;
+}
+
+/* The back button is useful on all screen sizes in this mode. */
+body.chat-open .mobile-back{
+    display:block;
+}
+
+@media(max-width:600px){
+    .container{
+        height:calc(100vh - 58px);
+        display:block;
+    }
+
+    .sidebar{
+        width:100%;
+        height:100%;
+    }
+
+    #chatsPanel{
+        width:100%;
+        height:100%;
+    }
+
+    .search{
+        width:100%;
+        padding:14px 14px 10px;
+    }
+
+    .search input{
+        width:100%;
+        height:58px;
+        font-size:17px;
+    }
+
+    .users-list{
+        width:100%;
+    }
+
+    .user{
+        width:100%;
+        min-height:78px;
+    }
+
+    .bottom-nav{
+        width:100%;
+        height:68px;
+    }
+
+    .chat{
+        width:100%;
+        min-width:100%;
+        height:100%;
+    }
+
+    body.chat-open .sidebar{
+        display:none;
+    }
+
+    body.chat-open .chat{
+        display:flex;
+    }
+}
+
 </style>
 
 </head>
@@ -1461,32 +1794,15 @@ body.dark .add-contact-btn {
         HeyYou
     </div>
 
-    <div class="header-right">
-
-        <div
-            class="my-profile"
-            onclick="openSettings()"
-            title="Settings"
-        >
-
-            <div
-                class="my-avatar"
-                id="myAvatar"
-            >
-                ?
-            </div>
-
-            <span id="myName">
-                Loading...
-            </span>
-
-        </div>
-
-        <button onclick="openSettings()">
-            ⚙️
-        </button>
-
-    </div>
+    <button
+        class="header-settings-button"
+        type="button"
+        onclick="openSettings()"
+        title="Settings"
+        aria-label="Settings"
+    >
+        ⚙️
+    </button>
 
 </header>
 
@@ -1499,48 +1815,23 @@ body.dark .add-contact-btn {
 
     <aside class="sidebar">
 
-        <div class="sidebar-tabs">
-
-            <button
-                id="chatTab"
-                class="sidebar-tab active"
-                onclick="showSidebarTab('chats')"
-            >
-                Chats
-            </button>
-
-            <button
-                id="statusTab"
-                class="sidebar-tab"
-                onclick="showSidebarTab('statuses')"
-            >
-                Status
-            </button>
-
-        </div>
-
-
-        <!-- CHATS -->
-
         <div
             id="chatsPanel"
-            style="
-                display:flex;
-                flex:1;
-                flex-direction:column;
-                min-height:0;
-            "
+            style="display:flex;flex:1;flex-direction:column;min-height:0;"
         >
 
             <div class="search">
-
                 <input
                     id="search"
                     type="text"
-                    placeholder="Search users..."
+                    placeholder="Search contacts..."
+                    autocomplete="off"
                     oninput="loadUsers()"
                 >
+            </div>
 
+            <div class="contacts-title" id="contactsTitle">
+                Contacts
             </div>
 
             <div
@@ -1550,64 +1841,56 @@ body.dark .add-contact-btn {
 
         </div>
 
-
-        <!-- STATUS -->
-
+        <!-- Status panel remains available for desktop / existing status features. -->
         <div
             class="status-panel"
             id="statusesPanel"
         >
-
             <div
                 class="status-me"
                 onclick="openMyStatusArea()"
             >
-
                 <div class="status-avatar-wrap">
-
                     <div
                         class="status-avatar"
                         id="myStatusAvatar"
-                    >
-                        ?
-                    </div>
-
-                    <div class="status-add">
-                        +
-                    </div>
-
+                    >?</div>
+                    <div class="status-add">+</div>
                 </div>
-
                 <div class="status-details">
-
-                    <div class="status-title">
-                        My Status
-                    </div>
-
+                    <div class="status-title">My Status</div>
                     <div
                         class="status-subtitle"
                         id="myStatusSubtitle"
-                    >
-                        Add a status update
-                    </div>
-
+                    >Add a status update</div>
                 </div>
-
             </div>
 
-
-            <div class="status-section-title">
-                Recent Updates
-            </div>
-
+            <div class="status-section-title">Recent Updates</div>
             <div id="statusUsersList"></div>
-
         </div>
 
+        <div class="history-panel" id="historyPanel">
+            <div class="history-title">Call History</div>
+            <div id="callHistoryList"></div>
+        </div>
+
+        <nav class="bottom-nav" aria-label="Main navigation">
+            <button id="contactsNav" class="bottom-nav-item active" type="button" onclick="showSidebarTab('chats')">
+                <span class="bottom-nav-icon">👥</span>
+                <span>Contacts</span>
+            </button>
+            <button id="statusNav" class="bottom-nav-item" type="button" onclick="showSidebarTab('statuses')">
+                <span class="bottom-nav-icon">◉</span>
+                <span>Status</span>
+            </button>
+            <button id="historyNav" class="bottom-nav-item" type="button" onclick="showSidebarTab('history')">
+                <span class="bottom-nav-icon">🕘</span>
+                <span>Calls</span>
+            </button>
+        </nav>
+
     </aside>
-
-
-    <!-- CHAT -->
 
     <main class="chat">
 
@@ -1615,83 +1898,60 @@ body.dark .add-contact-btn {
 
             <div class="chat-user-box">
 
+                <button
+                    class="mobile-back"
+                    type="button"
+                    onclick="showContactsHome()"
+                    aria-label="Back to contacts"
+                >‹</button>
+
                 <div
                     class="chat-avatar"
                     id="chatAvatar"
-                >
-                    ?
-                </div>
+                >?</div>
 
                 <div>
-
                     <div
                         class="chat-user"
                         id="chatUser"
-                    >
-                        Select a user
-                    </div>
+                    >Select a user</div>
 
                     <div
                         class="status"
                         id="chatStatus"
                     ></div>
-
                 </div>
 
             </div>
 
-
             <div class="chat-actions">
-
                 <button
                     class="call-button audio"
                     onclick="startCall('audio')"
                     title="Start Audio Call"
                 >
-
-                    <span class="call-icon">
-                        📞
-                    </span>
-
-                    <span class="label">
-                        Audio
-                    </span>
-
+                    <span class="call-icon">📞</span>
+                    <span class="label">Audio</span>
                 </button>
-
 
                 <button
                     class="call-button video"
                     onclick="startCall('video')"
                     title="Start Video Call"
                 >
-
-                    <span class="call-icon">
-                        📹
-                    </span>
-
-                    <span class="label">
-                        Video
-                    </span>
-
+                    <span class="call-icon">📹</span>
+                    <span class="label">Video</span>
                 </button>
-
             </div>
 
         </div>
-
 
         <div
             class="messages"
             id="messages"
         >
-
-            <div class="empty">
-                Select a user to start chatting
-            </div>
-
+            <div class="empty">Select a user to start chatting</div>
         </div>
-
 
         <div class="composer">
 
@@ -1706,9 +1966,7 @@ body.dark .add-contact-btn {
                 type="button"
                 onclick="document.getElementById('fileInput').click()"
                 title="Send file"
-            >
-                📎
-            </button>
+            >📎</button>
 
             <input
                 type="text"
@@ -1720,9 +1978,7 @@ body.dark .add-contact-btn {
             <button
                 onclick="sendMessage()"
                 title="Send"
-            >
-                ➤
-            </button>
+            >➤</button>
 
         </div>
 
@@ -1854,10 +2110,15 @@ body.dark .add-contact-btn {
                 Status
             </div>
 
-            <div class="status-owner-actions" id="statusOwnerActions" style="display:none">
-                <button type="button" class="status-edit-button" onclick="editCurrentStatus()">✏️ Change</button>
-                <button type="button" class="status-delete-button" onclick="deleteCurrentStatus()">🗑️ Delete</button>
-            </div>
+            <button
+                class="status-delete"
+                id="statusDeleteButton"
+                onclick="deleteCurrentStatus()"
+                style="display:none"
+                title="Delete my status"
+            >
+                🗑 Delete
+            </button>
 
             <button
                 class="status-viewer-close"
@@ -1900,6 +2161,12 @@ body.dark .add-contact-btn {
         playsinline
     ></video>
 
+    <audio
+        id="remoteAudio"
+        autoplay
+        playsinline
+    ></audio>
+
     <video
         id="myVideo"
         class="my-video"
@@ -1908,22 +2175,15 @@ body.dark .add-contact-btn {
         playsinline
     ></video>
 
-    <div class="call-controls">
+    <div class="call-controls" aria-label="Call controls">
 
-        <button onclick="toggleMute()">
-            🎤 Mute
-        </button>
+        <button id="muteCallBtn" class="call-control-button" type="button" onclick="toggleMute()" title="Mute microphone" aria-label="Mute microphone">🎤</button>
 
-        <button onclick="toggleCamera()">
-            📷 Camera
-        </button>
+        <button id="speakerCallBtn" class="call-control-button" type="button" onclick="toggleSpeaker()" title="Speaker on" aria-label="Speaker on">🔊</button>
 
-        <button
-            class="end-call"
-            onclick="endCall()"
-        >
-            ❌ End Call
-        </button>
+        <button id="cameraCallBtn" class="call-control-button" type="button" onclick="toggleCamera()" title="Camera on" aria-label="Camera on">📷</button>
+
+        <button class="end-call" type="button" onclick="endCall()" title="End call" aria-label="End call">📞</button>
 
     </div>
 
@@ -2831,43 +3091,6 @@ body.dark .add-contact-btn {
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
-async function addContact(userId) {
-    try {
-        const response =
-            await fetch(
-                "/api/contacts/" +
-                encodeURIComponent(userId),
-                {
-                    method: "POST"
-                }
-            );
-
-        const data =
-            await response.json();
-
-        if (!response.ok) {
-            alert(
-                data.error ||
-                "Could not add contact"
-            );
-            return;
-        }
-
-        alert("Contact added successfully");
-
-        loadUsers();
-
-    } catch (error) {
-        console.error(
-            "Add contact error:",
-            error
-        );
-
-        alert(
-            "Could not add contact"
-        );
-    }
-}
 
 /* =====================================================
    GLOBAL VARIABLES
@@ -2903,12 +3126,21 @@ let statusFile = null;
 
 let statusCache = [];
 
+let callHistory = loadCallHistory();
+let activeCallHistoryEntry = null;
+let callConnectedAt = null;
+let speakerEnabled = true;
+let remoteAudioSource = null;
+let remoteAudioGain = null;
+let remoteAudioStream = null;
+let pendingIceCandidates = [];
+
 
 /* =====================================================
    ICE
 ===================================================== */
 
-const iceServers = {
+let iceServers = {
 
     iceServers: [
 
@@ -2920,6 +3152,83 @@ const iceServers = {
     ]
 
 };
+
+let iceServersLoaded = false;
+
+async function loadIceServers(){
+    if(iceServersLoaded) return iceServers;
+    try{
+        const response = await fetch("/api/ice-servers", {cache:"no-store"});
+        if(response.ok){
+            const data = await response.json();
+            if(data && Array.isArray(data.ice_servers) && data.ice_servers.length){
+                iceServers = {iceServers:data.ice_servers};
+            }
+        }
+    }catch(error){
+        console.warn("TURN/ICE credentials unavailable; using STUN fallback.", error);
+    }finally{
+        iceServersLoaded = true;
+    }
+    return iceServers;
+}
+
+function resumeCallAudioContext(){
+    try{
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if(!AC) return null;
+        audioContext = audioContext || new AC();
+        if(audioContext.state === "suspended") audioContext.resume().catch(function(error){console.warn("AudioContext resume:", error);});
+        return audioContext;
+    }catch(error){
+        console.warn("AudioContext:", error);
+        return null;
+    }
+}
+
+async function attachRemoteAudioStream(stream){
+    const remoteAudio = document.getElementById("remoteAudio");
+    if(!remoteAudio || !stream) return;
+
+    remoteAudioStream = stream;
+    remoteAudio.srcObject = stream;
+    remoteAudio.autoplay = true;
+    remoteAudio.playsInline = true;
+    remoteAudio.muted = !speakerEnabled;
+    remoteAudio.volume = speakerEnabled ? 1 : 0;
+
+    /*
+       Render/HTTPS audio fix:
+       use the native WebRTC audio element first. The old code muted the
+       element and set volume to zero, then depended only on WebAudio.
+       On mobile browsers the WebAudio context can remain suspended when
+       the remote track arrives asynchronously, producing a silent call.
+    */
+    try{
+        await remoteAudio.play();
+        return;
+    }catch(playError){
+        console.warn("Native remote audio playback:", playError);
+    }
+
+    if(currentCallMode !== "audio") return;
+
+    const ctx = resumeCallAudioContext();
+    if(!ctx) return;
+
+    try{
+        if(ctx.state === "suspended") await ctx.resume();
+        if(remoteAudioSource) try{remoteAudioSource.disconnect();}catch(e){}
+        if(remoteAudioGain) try{remoteAudioGain.disconnect();}catch(e){}
+        remoteAudioSource = ctx.createMediaStreamSource(stream);
+        remoteAudioGain = ctx.createGain();
+        remoteAudioGain.gain.value = speakerEnabled ? 1 : 0;
+        remoteAudioSource.connect(remoteAudioGain);
+        remoteAudioGain.connect(ctx.destination);
+    }catch(error){
+        console.warn("Remote audio WebAudio attach:", error);
+    }
+}
 
 
 /* =====================================================
@@ -3113,15 +3422,11 @@ async function loadMe(){
         me =
             await response.json();
 
-        document.getElementById(
-            "myName"
-        ).textContent =
-            me.name || "";
+        const headerName = document.getElementById("myName");
+        if(headerName) headerName.textContent = me.name || "";
 
-        document.getElementById(
-            "myAvatar"
-        ).innerHTML =
-            avatarMarkup(me);
+        const headerAvatar = document.getElementById("myAvatar");
+        if(headerAvatar) headerAvatar.innerHTML = avatarMarkup(me);
 
         document.getElementById(
             "myStatusAvatar"
@@ -3135,6 +3440,7 @@ async function loadMe(){
         connectSocket();
 
         await loadUsers();
+        renderCallHistory();
 
         await loadStatuses();
 
@@ -3303,6 +3609,8 @@ function connectSocket(){
 
                     );
 
+                await flushPendingIceCandidates();
+
             }catch(error){
 
                 console.error(
@@ -3320,30 +3628,20 @@ function connectSocket(){
         "ice-candidate",
         async function(data){
 
-            if(
-                !peerConnection ||
-                !data.candidate
-            )
+            if(!data || !data.candidate) return;
+
+            /* ICE may arrive before the remote SDP is installed. */
+            if(!peerConnection || !peerConnection.remoteDescription){
+                pendingIceCandidates.push(data.candidate);
                 return;
+            }
 
             try{
-
-                await peerConnection
-                    .addIceCandidate(
-
-                        new RTCIceCandidate(
-                            data.candidate
-                        )
-
-                    );
-
-            }catch(error){
-
-                console.error(
-                    "ICE:",
-                    error
+                await peerConnection.addIceCandidate(
+                    new RTCIceCandidate(data.candidate)
                 );
-
+            }catch(error){
+                console.error("ICE:", error);
             }
 
         }
@@ -3362,7 +3660,7 @@ function connectSocket(){
                 "Call ended"
             );
 
-            closeCall();
+            closeCall("ended");
 
         }
     );
@@ -3379,7 +3677,7 @@ function connectSocket(){
                 "Call failed"
             );
 
-            closeCall();
+            closeCall("failed");
 
         }
     );
@@ -3393,69 +3691,119 @@ function connectSocket(){
 
 function showSidebarTab(tab){
 
-    const chats =
-        document.getElementById(
-            "chatsPanel"
-        );
+    const chats = document.getElementById("chatsPanel");
+    const statuses = document.getElementById("statusesPanel");
+    const history = document.getElementById("historyPanel");
 
-    const statuses =
-        document.getElementById(
-            "statusesPanel"
-        );
+    const nav = {
+        chats: document.getElementById("contactsNav"),
+        statuses: document.getElementById("statusNav"),
+        history: document.getElementById("historyNav")
+    };
 
-    const chatTab =
-        document.getElementById(
-            "chatTab"
-        );
+    if(!chats || !statuses || !history) return;
 
-    const statusTab =
-        document.getElementById(
-            "statusTab"
-        );
+    chats.style.display = tab === "chats" ? "flex" : "none";
+    statuses.classList.toggle("active", tab === "statuses");
+    history.classList.toggle("active", tab === "history");
 
+    Object.keys(nav).forEach(function(key){
+        if(nav[key]) nav[key].classList.toggle("active", key === tab);
+    });
 
-    if(
-        tab === "chats"
-    ){
-
-        chats.style.display =
-            "flex";
-
-        statuses.classList.remove(
-            "active"
-        );
-
-        chatTab.classList.add(
-            "active"
-        );
-
-        statusTab.classList.remove(
-            "active"
-        );
-
-    }else{
-
-        chats.style.display =
-            "none";
-
-        statuses.classList.add(
-            "active"
-        );
-
-        chatTab.classList.remove(
-            "active"
-        );
-
-        statusTab.classList.add(
-            "active"
-        );
-
-        loadStatuses();
-
-    }
-
+    if(tab === "statuses") loadStatuses();
+    if(tab === "history") renderCallHistory();
 }
 
+function showContactsHome(){
+    document.body.classList.remove("mobile-chat-open");
+    document.body.classList.remove("chat-open");
+    showSidebarTab("chats");
+
+    const input = document.getElementById("search");
+    if(input) input.value = "";
+
+    selectedUser = null;
+    loadUsers();
+}
+
+
+
+/* =====================================================
+   CALL HISTORY
+===================================================== */
+
+function loadCallHistory(){
+    try{
+        const saved = JSON.parse(localStorage.getItem("heyyou_call_history") || "[]");
+        return Array.isArray(saved) ? saved : [];
+    }catch(error){
+        return [];
+    }
+}
+
+function saveCallHistory(){
+    try{
+        localStorage.setItem("heyyou_call_history", JSON.stringify(callHistory.slice(0,100)));
+    }catch(error){
+        console.error("Call history save:", error);
+    }
+}
+
+function addCallHistoryEntry(entry){
+    if(!entry) return;
+    callHistory.unshift(entry);
+    callHistory = callHistory.slice(0,100);
+    saveCallHistory();
+    renderCallHistory();
+}
+
+function formatHistoryTime(value){
+    try{
+        return new Date(value).toLocaleString([], {day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
+    }catch(error){ return ""; }
+}
+
+function formatCallDuration(seconds){
+    seconds = Math.max(0, Number(seconds)||0);
+    return Math.floor(seconds/60) + ":" + String(seconds%60).padStart(2,"0");
+}
+
+function renderCallHistory(){
+    const list = document.getElementById("callHistoryList");
+    if(!list) return;
+    list.innerHTML = "";
+    if(!callHistory.length){
+        list.innerHTML = '<div class="empty">No call history yet</div>';
+        return;
+    }
+    callHistory.forEach(function(item){
+        const row = document.createElement("div");
+        row.className = "call-history-item";
+        const direction = item.direction === "incoming" ? "↙" : "↗";
+        const state = item.status === "rejected" ? "Rejected" : item.status === "failed" ? "Failed" : item.status === "missed" ? "Missed" : "Completed";
+        row.innerHTML =
+            '<div class="call-history-icon">' + (item.mode === "video" ? "📹" : "📞") + '</div>' +
+            '<div class="call-history-info">' +
+                '<div class="call-history-name">' + escapeHtml(item.userName || "Unknown user") + '</div>' +
+                '<div class="call-history-meta">' + escapeHtml(direction + " " + state + " • " + formatCallDuration(item.duration) + " • " + formatHistoryTime(item.time)) + '</div>' +
+            '</div>';
+        row.onclick = function(){
+            if(item.userId != null) loadUsersAndOpenUser(item.userId);
+        };
+        list.appendChild(row);
+    });
+}
+
+async function loadUsersAndOpenUser(userId){
+    try{
+        const response = await fetch("/api/users");
+        if(!response.ok) return;
+        const users = await response.json();
+        const user = Array.isArray(users) ? users.find(function(u){return Number(u.id)===Number(userId);}) : null;
+        if(user) selectUser(user);
+    }catch(error){ console.error("Open history user:", error); }
+}
 
 /* =====================================================
    USERS
@@ -3469,166 +3817,245 @@ async function loadUsers(){
     try{
 
         const input =
-            document.getElementById(
-                "search"
-            );
+            document.getElementById("search");
 
         const query =
             input
-                ? input.value || ""
+                ? input.value.trim()
                 : "";
 
-        const response =
-            await fetch(
+        const list =
+            document.getElementById("usersList");
 
-                "/api/users?q=" +
-                encodeURIComponent(
-                    query
-                )
+        const title =
+            document.getElementById("contactsTitle");
 
-            );
-
-        if(
-            !response.ok
-        )
+        if(!list)
             return;
+
+        list.innerHTML =
+            '<div class="empty">Loading...</div>';
+
+        const blocked =
+            (appSettings.blockedUsers || [])
+                .map(Number);
+
+        /*
+           Empty search = SAVED CONTACTS ONLY.
+           Typing = SEARCH ALL USERS.
+        */
+        const endpoint =
+            query
+                ? "/api/users?q=" + encodeURIComponent(query)
+                : "/api/contacts";
+
+        const response =
+            await fetch(endpoint);
+
+        if(!response.ok){
+            list.innerHTML =
+                '<div class="empty">Unable to load contacts</div>';
+            return;
+        }
 
         let users =
             await response.json();
 
-        if(
-            !Array.isArray(users)
-        ){
-
+        if(!Array.isArray(users))
             users = [];
 
-        }
+        users = users.filter(function(user){
+            return user &&
+                user.id != null &&
+                Number(user.id) !== Number(me.id) &&
+                !blocked.includes(Number(user.id));
+        });
 
+        title.textContent =
+            query ? "Search results" : "Contacts";
 
-        const blocked =
-            appSettings.blockedUsers
-                .map(
-                    Number
-                );
-
-
-        users =
-            users.filter(
-                function(user){
-
-                    return !blocked.includes(
-                        Number(
-                            user.id
-                        )
-                    );
-
-                }
-            );
-
-
-        const list =
-            document.getElementById(
-                "usersList"
-            );
+        list.classList.toggle(
+            "search-mode",
+            !!query
+        );
 
         list.innerHTML = "";
 
-
-        if(
-            !users.length
-        ){
-
+        if(!users.length){
             list.innerHTML =
-                '<div class="empty">No users found</div>';
-
+                '<div class="empty">' +
+                (query ? "No users found" : "No contacts saved yet") +
+                '</div>';
             return;
-
         }
 
+        /* For search results we need to know which users are already saved. */
+        let savedIds = new Set();
 
-        users.forEach(
-            function(user){
+        if(query){
+            try{
+                const contactsResponse =
+                    await fetch("/api/contacts");
 
-                const div =
-                    document.createElement(
-                        "div"
-                    );
+                if(contactsResponse.ok){
+                    const contacts =
+                        await contactsResponse.json();
 
-                div.className =
-                    "user";
-
-
-                if(
-                    selectedUser &&
-                    Number(
-                        selectedUser.id
-                    ) ===
-                    Number(
-                        user.id
-                    )
-                ){
-
-                    div.classList.add(
-                        "active"
-                    );
-
+                    if(Array.isArray(contacts)){
+                        contacts.forEach(function(contact){
+                            if(contact && contact.id != null){
+                                savedIds.add(Number(contact.id));
+                            }
+                        });
+                    }
                 }
+            }catch(error){
+                console.error("Contacts lookup:", error);
+            }
+        }
 
+        users.forEach(function(user){
 
-               div.innerHTML =
-    '<div class="avatar">' +
-        avatarMarkup(user) +
-    '</div>' +
+            const div =
+                document.createElement("div");
 
-    '<div class="user-info" style="flex:1">' +
-        '<div class="user-name">' +
-            escapeHtml(user.name) +
-        '</div>' +
+            div.className = "user";
 
-        '<div class="status">' +
-            escapeHtml(
-                appSettings.onlineStatus
-                    ? (user.status || "offline")
-                    : "offline"
-            ) +
-        '</div>' +
-    '</div>' +
+            if(
+                selectedUser &&
+                Number(selectedUser.id) === Number(user.id)
+            ){
+                div.classList.add("active");
+            }
 
-    '<button ' +
-        'class="add-contact-btn" ' +
-        'onclick="event.stopPropagation(); addContact(' +
-            Number(user.id) +
-        ')"' +
-    '>' +
-        '+ Add Contact' +
-    '</button>';
+            const isSaved =
+                !query || savedIds.has(Number(user.id));
 
-                div.onclick =
-                    function(){
-
-                        selectUser(
-                            user
-                        );
-
-                    };
-
-
-                list.appendChild(
-                    div
+            div.innerHTML =
+                '<div class="user-main">' +
+                    '<div class="avatar">' +
+                        avatarMarkup(user) +
+                    '</div>' +
+                    '<div class="user-info">' +
+                        '<div class="user-name">' +
+                            escapeHtml(user.name || "Unknown") +
+                        '</div>' +
+                        '<div class="status">' +
+                            escapeHtml(
+                                appSettings.onlineStatus
+                                    ? (user.status || "offline")
+                                    : "offline"
+                            ) +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                (
+                    isSaved
+                        ? '<div class="user-arrow">›</div>'
+                        : '<button class="add-contact-btn" type="button">Add Contact</button>'
                 );
 
+            if(isSaved){
+                div.onclick = function(){
+                    selectUser(user);
+                };
+            }else{
+                const addButton =
+                    div.querySelector(".add-contact-btn");
+
+                addButton.onclick = function(event){
+                    event.stopPropagation();
+                    addContact(user, addButton);
+                };
             }
-        );
+
+            list.appendChild(div);
+        });
 
     }catch(error){
+        console.error("Users error:", error);
 
-        console.error(
-            "Users error:",
-            error
-        );
+        const list =
+            document.getElementById("usersList");
 
+        if(list){
+            list.innerHTML =
+                '<div class="empty">Unable to load contacts</div>';
+        }
+    }
+}
+
+/* =====================================================
+   ADD CONTACT FROM SEARCH
+===================================================== */
+
+async function addContact(user, button){
+
+    if(!user || user.id == null)
+        return;
+
+    if(button){
+        button.disabled = true;
+        button.textContent = "Adding...";
     }
 
+    try{
+        const response =
+            await fetch(
+                "/api/contacts/" + encodeURIComponent(user.id),
+                {
+                    method: "POST"
+                }
+            );
+
+        let data = {};
+
+        try{
+            data = await response.json();
+        }catch(error){}
+
+        if(!response.ok || data.error){
+            throw new Error(
+                data.error || "Could not add contact."
+            );
+        }
+
+        showToast("Contact added");
+
+        /* Return to the normal saved-contact list. */
+        const input =
+            document.getElementById("search");
+
+        if(input)
+            input.value = "";
+
+        await loadUsers();
+
+    }catch(error){
+        console.error("Add contact:", error);
+
+        alert(
+            error.message ||
+            "Could not add contact."
+        );
+
+        if(button){
+            button.disabled = false;
+            button.textContent = "Add Contact";
+        }
+    }
+}
+
+function showContactsHome(){
+    document.body.classList.remove("mobile-chat-open");
+    document.body.classList.remove("chat-open");
+    showSidebarTab("chats");
+
+    const input = document.getElementById("search");
+    if(input) input.value = "";
+
+    selectedUser = null;
+    loadUsers();
 }
 
 
@@ -3738,6 +4165,9 @@ async function selectUser(user){
     showSidebarTab(
         "chats"
     );
+
+    document.body.classList.add("chat-open");
+    document.body.classList.add("mobile-chat-open");
 
     await loadMessages();
 
@@ -4305,13 +4735,7 @@ async function sendFile(){
    STATUS CREATOR
 ===================================================== */
 
-function openStatusCreator(isEditing = false){
-
-    if(!isEditing){
-        editingStatusId=null;
-        editingStatusType=null;
-        editingStatusOriginal=null;
-    }
+function openStatusCreator(){
 
     currentStatusType =
         "text";
@@ -4577,11 +5001,6 @@ function previewStatusFile(){
 ===================================================== */
 
 async function publishStatus(){
-
-    if(editingStatusId){
-        await updateStatus();
-        return;
-    }
 
     if(
         !me
@@ -5465,8 +5884,6 @@ function renderStatusViewer(
             statuses[index]
         );
 
-    updateStatusOwnerActions(user,status);
-
 
     document.getElementById(
         "statusViewerName"
@@ -5476,6 +5893,19 @@ function renderStatusViewer(
         user.name
             ||
         "Status";
+
+    const deleteButton =
+        document.getElementById("statusDeleteButton");
+
+    if(deleteButton){
+        const isMine =
+            me && user &&
+            Number(user.id) === Number(me.id);
+        deleteButton.style.display =
+            isMine && status.id ? "inline-flex" : "none";
+        deleteButton.disabled = false;
+        deleteButton.textContent = "🗑 Delete";
+    }
 
 
     if(
@@ -5713,86 +6143,6 @@ async function markStatusViewed(
 }
 
 
-let editingStatusId = null;
-let editingStatusType = null;
-let editingStatusOriginal = null;
-
-/* =====================================================
-   STATUS OWNER ACTIONS
-===================================================== */
-function getCurrentViewerStatus(){
-    const viewer=document.getElementById("statusViewer");
-    let statuses=[];
-    try{ statuses=JSON.parse(viewer.dataset.statuses||"[]"); }catch(e){ return null; }
-    const index=Number(viewer.dataset.index||0);
-    return Array.isArray(statuses)&&statuses[index] ? normalizeStatus(statuses[index]) : null;
-}
-
-function updateStatusOwnerActions(user,status){
-    const actions=document.getElementById("statusOwnerActions");
-    if(!actions) return;
-    const mine=!!(user&&status&&Number(user.id)===Number(me.id)&&Number(status.user_id)===Number(me.id));
-    actions.style.display=mine?"flex":"none";
-}
-
-async function deleteCurrentStatus(){
-    const status=getCurrentViewerStatus();
-    if(!status||!status.id||Number(status.user_id)!==Number(me.id)) return;
-    if(!confirm("Delete this status? This cannot be undone.")) return;
-    try{
-        const response=await fetch("/api/status/"+encodeURIComponent(status.id),{method:"DELETE"});
-        let data={}; try{data=await response.json();}catch(e){}
-        if(!response.ok||data.error){ alert(data.error||"Could not delete status."); return; }
-        showToast("Status deleted");
-        closeStatusViewer();
-        await loadStatuses();
-    }catch(error){ console.error("Delete status:",error); alert("Could not delete status."); }
-}
-
-function editCurrentStatus(){
-    const status=getCurrentViewerStatus();
-    if(!status||!status.id||Number(status.user_id)!==Number(me.id)) return;
-    editingStatusId=status.id;
-    editingStatusType=status.type||"text";
-    editingStatusOriginal=status;
-    closeStatusViewer();
-    openStatusCreator(true);
-    setStatusType(editingStatusType);
-    if(editingStatusType==="text"){
-        document.getElementById("statusText").value=status.text||"";
-    }
-    const button=document.getElementById("publishStatusButton");
-    if(button) button.textContent="Save Changes";
-    if(editingStatusType!=="text") showToast("Select the new file, then save changes");
-}
-
-async function updateStatus(){
-    const id=editingStatusId;
-    if(!id) return publishStatus();
-    const button=document.getElementById("publishStatusButton");
-    if(button) button.disabled=true;
-    try{
-        let response;
-        if(editingStatusType==="text"){
-            const text=document.getElementById("statusText").value.trim();
-            if(!text){ alert("Please write something."); return; }
-            response=await fetch("/api/status/"+encodeURIComponent(id),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"text",text:text})});
-        }else{
-            if(!statusFile){ alert("Please select a new file."); return; }
-            const form=new FormData(); form.append("file",statusFile); form.append("type",editingStatusType);
-            response=await fetch("/api/status/"+encodeURIComponent(id),{method:"PUT",body:form});
-        }
-        let data={}; try{data=await response.json();}catch(e){}
-        if(!response.ok||data.error){ alert(data.error||"Could not change status."); return; }
-        editingStatusId=null; editingStatusType=null; editingStatusOriginal=null;
-        closeStatusCreator();
-        showToast("Status changed successfully");
-        await loadStatuses();
-        showSidebarTab("statuses");
-    }catch(error){ console.error("Update status:",error); alert("Could not change status."); }
-    finally{ if(button){button.disabled=false;button.textContent="Publish Status";} }
-}
-
 /* =====================================================
    NEXT STATUS
 ===================================================== */
@@ -5873,6 +6223,62 @@ function nextStatus(
 
 
 /* =====================================================
+   DELETE CURRENT STATUS
+===================================================== */
+
+async function deleteCurrentStatus(){
+
+    const viewer = document.getElementById("statusViewer");
+    if(!viewer) return;
+
+    let statuses = [];
+    let user = {};
+    try{
+        statuses = JSON.parse(viewer.dataset.statuses || "[]");
+        user = JSON.parse(viewer.dataset.user || "{}");
+    }catch(error){
+        return;
+    }
+
+    const index = Number(viewer.dataset.index || 0);
+    const status = statuses[index] || {};
+
+    if(!me || !user || Number(user.id) !== Number(me.id) || !status.id) return;
+    if(!confirm("Delete this status?")) return;
+
+    const button = document.getElementById("statusDeleteButton");
+    if(button){
+        button.disabled = true;
+        button.textContent = "Deleting...";
+    }
+
+    try{
+        const response = await fetch(
+            "/api/status/" + encodeURIComponent(status.id),
+            {method:"DELETE"}
+        );
+        const data = await response.json().catch(function(){return {};});
+
+        if(!response.ok || data.error){
+            throw new Error(data.error || "Could not delete status.");
+        }
+
+        closeStatusViewer();
+        await loadStatuses();
+        showToast("Status deleted");
+    }catch(error){
+        console.error("Delete status:", error);
+        alert(error.message || "Could not delete status.");
+    }finally{
+        if(button){
+            button.disabled = false;
+            button.textContent = "🗑 Delete";
+        }
+    }
+}
+
+
+/* =====================================================
    CLOSE VIEWER
 ===================================================== */
 
@@ -5902,9 +6308,12 @@ function closeStatusViewer(){
     content.innerHTML =
         "";
 
-    const ownerActions=document.getElementById("statusOwnerActions");
-    if(ownerActions) ownerActions.style.display="none";
-
+    const deleteButton = document.getElementById("statusDeleteButton");
+    if(deleteButton){
+        deleteButton.style.display = "none";
+        deleteButton.disabled = false;
+        deleteButton.textContent = "🗑 Delete";
+    }
 
     document.getElementById(
         "statusViewer"
@@ -6001,9 +6410,24 @@ async function startCall(
 
     currentCallMode =
         mode;
+    pendingIceCandidates = [];
 
 
+
+    activeCallHistoryEntry = {
+        userId: selectedUser.id,
+        userName: selectedUser.name || "Unknown user",
+        mode: mode,
+        direction: "outgoing",
+        status: "calling",
+        time: new Date().toISOString(),
+        duration: 0
+    };
+    callConnectedAt = null;
     try{
+
+        resumeCallAudioContext();
+        await loadIceServers();
 
         localStream =
             await navigator
@@ -6030,6 +6454,8 @@ async function startCall(
             "callScreen"
         ).style.display =
             "block";
+
+        updateCallModeUI();
 
 
         document.getElementById(
@@ -6113,6 +6539,27 @@ async function startCall(
 
 
 /* =====================================================
+   ICE CANDIDATE QUEUE
+===================================================== */
+
+async function flushPendingIceCandidates(){
+    if(!peerConnection || !peerConnection.remoteDescription) return;
+    if(!pendingIceCandidates.length) return;
+
+    const candidates = pendingIceCandidates.splice(0);
+    for(const candidate of candidates){
+        try{
+            await peerConnection.addIceCandidate(
+                new RTCIceCandidate(candidate)
+            );
+        }catch(error){
+            console.error("Queued ICE:", error);
+        }
+    }
+}
+
+
+/* =====================================================
    PEER CONNECTION
 ===================================================== */
 
@@ -6153,21 +6600,27 @@ function createPeerConnection(){
     peerConnection.ontrack =
         function(event){
 
-            const remote =
-                document.getElementById(
-                    "remoteVideo"
-                );
+            const stream =
+                event.streams && event.streams[0]
+                    ? event.streams[0]
+                    : new MediaStream([event.track]);
 
+            const remoteVideo = document.getElementById("remoteVideo");
 
-            remote.srcObject =
-                event.streams[0];
+            if(currentCallMode === "audio"){
+                attachRemoteAudioStream(stream).catch(function(error){
+                    console.warn("Remote audio track:", error);
+                });
+            }else if(remoteVideo){
+                remoteVideo.srcObject = stream;
+                remoteVideo.muted = !speakerEnabled;
+                remoteVideo.volume = speakerEnabled ? 1 : 0;
+                remoteVideo.play().catch(function(error){
+                    console.warn("Remote video playback:", error);
+                });
+            }
 
-
-            remote.play()
-                .catch(
-                    function(){}
-                );
-
+            callConnectedAt = callConnectedAt || Date.now();
         };
 
 
@@ -6179,6 +6632,11 @@ function createPeerConnection(){
             )
                 return;
 
+
+            if(peerConnection.connectionState === "connected"){
+                callConnectedAt = callConnectedAt || Date.now();
+                if(activeCallHistoryEntry) activeCallHistoryEntry.status = "connected";
+            }
 
             if(
                 [
@@ -6460,6 +6918,8 @@ async function acceptIncomingCall(){
     pendingIncomingCall =
         null;
 
+    resumeCallAudioContext();
+    await loadIceServers();
 
     await answerCall(
         data
@@ -6473,41 +6933,32 @@ async function acceptIncomingCall(){
 ===================================================== */
 
 function rejectIncomingCall(){
+    const incoming = pendingIncomingCall;
 
-    if(
-        pendingIncomingCall &&
-        socket
-    ){
-
-        socket.emit(
-            "hangup",
-            {
-
-                to:
-                    pendingIncomingCall.from
-
-            }
-        );
-
+    if(incoming && socket){
+        socket.emit("hangup", {to: incoming.from});
     }
 
-
     stopRing();
-
     hideIncomingCall();
 
-    pendingIncomingCall =
-        null;
+    if(incoming){
+        addCallHistoryEntry({
+            userId: incoming.from,
+            userName: document.getElementById("incomingName")?.textContent || "Unknown user",
+            mode: incoming.mode || "audio",
+            direction: "incoming",
+            status: "rejected",
+            time: new Date().toISOString(),
+            duration: 0
+        });
+    }
 
-    currentCallUser =
-        null;
-
-
-    showToast(
-        "Call rejected"
-    );
-
+    pendingIncomingCall = null;
+    currentCallUser = null;
+    showToast("Call rejected");
 }
+
 
 
 /* =====================================================
@@ -6520,14 +6971,29 @@ async function answerCall(
 
     try{
 
+        resumeCallAudioContext();
+        await loadIceServers();
+
         currentCallUser =
             data.from;
 
         currentCallMode =
             data.mode ||
             "video";
+        pendingIceCandidates = [];
 
 
+
+        activeCallHistoryEntry = {
+            userId: data.from,
+            userName: "Unknown user",
+            mode: currentCallMode,
+            direction: "incoming",
+            status: "connected",
+            time: new Date().toISOString(),
+            duration: 0
+        };
+        callConnectedAt = null;
         localStream =
             await navigator
                 .mediaDevices
@@ -6553,6 +7019,8 @@ async function answerCall(
             "callScreen"
         ).style.display =
             "block";
+
+        updateCallModeUI();
 
 
         document.getElementById(
@@ -6587,6 +7055,8 @@ async function answerCall(
                 )
 
             );
+
+        await flushPendingIceCandidates();
 
 
         const answer =
@@ -6816,141 +7286,144 @@ function stopRing(){
    CALL CONTROLS
 ===================================================== */
 
-function toggleMute(){
+function updateCallModeUI(){
+    const screen = document.getElementById("callScreen");
+    const cameraButton = document.getElementById("cameraCallBtn");
+    const muteButton = document.getElementById("muteCallBtn");
+    const speakerButton = document.getElementById("speakerCallBtn");
 
-    if(
-        !localStream
-    )
-        return;
+    if(screen) screen.classList.toggle("audio-call", currentCallMode === "audio");
 
-
-    const track =
-        localStream
-            .getAudioTracks()[0];
-
-
-    if(track){
-
-        track.enabled =
-            !track.enabled;
-
+    if(cameraButton){
+        cameraButton.style.display = currentCallMode === "video" ? "inline-flex" : "none";
+        const cameraTrack = localStream && localStream.getVideoTracks()[0];
+        if(cameraTrack){
+            cameraButton.textContent = cameraTrack.enabled ? "📷" : "🚫";
+            cameraButton.title = cameraTrack.enabled ? "Camera on" : "Camera off";
+            cameraButton.setAttribute("aria-label", cameraButton.title);
+        }
     }
 
+    if(muteButton){
+        const track = localStream && localStream.getAudioTracks()[0];
+        const enabled = !track || track.enabled;
+        muteButton.textContent = enabled ? "🎤" : "🔇";
+        muteButton.title = enabled ? "Mute microphone" : "Unmute microphone";
+        muteButton.setAttribute("aria-label", muteButton.title);
+    }
+
+    if(speakerButton){
+        speakerButton.textContent = speakerEnabled ? "🔊" : "🔇";
+        speakerButton.title = speakerEnabled ? "Speaker on" : "Speaker off";
+        speakerButton.setAttribute("aria-label", speakerButton.title);
+    }
 }
 
+function toggleMute(){
+    if(!localStream) return;
+    const track = localStream.getAudioTracks()[0];
+    if(!track){ showToast("Microphone not available"); return; }
+    track.enabled = !track.enabled;
+    updateCallModeUI();
+}
+
+function toggleSpeaker(){
+    speakerEnabled = !speakerEnabled;
+
+    if(remoteAudioGain){
+        remoteAudioGain.gain.value = speakerEnabled ? 1 : 0;
+    }
+
+    const remoteAudio = document.getElementById("remoteAudio");
+    const remoteVideo = document.getElementById("remoteVideo");
+    [remoteAudio, remoteVideo].forEach(function(media){
+        if(!media) return;
+        media.muted = !speakerEnabled;
+        media.volume = speakerEnabled ? 1 : 0;
+    });
+
+    if(currentCallMode === "audio" && remoteAudio && remoteAudio.srcObject && speakerEnabled){
+        remoteAudio.play().catch(function(error){console.warn("Remote audio fallback playback:", error);});
+    }
+
+    updateCallModeUI();
+}
 
 function toggleCamera(){
-
-    if(
-        !localStream
-    )
-        return;
-
-
-    const track =
-        localStream
-            .getVideoTracks()[0];
-
-
-    if(track){
-
-        track.enabled =
-            !track.enabled;
-
-    }
-
+    if(!localStream) return;
+    const track = localStream.getVideoTracks()[0];
+    if(!track){ showToast("Camera is not available for this call"); return; }
+    track.enabled = !track.enabled;
+    updateCallModeUI();
 }
-
 
 function endCall(){
-
-    if(
-        currentCallUser &&
-        socket
-    ){
-
-        socket.emit(
-            "hangup",
-            {
-
-                to:
-                    currentCallUser
-
-            }
-        );
-
+    if(currentCallUser && socket){
+        socket.emit("hangup", {to: currentCallUser});
     }
-
-
-    closeCall();
-
+    closeCall("ended");
 }
 
-
-function closeCall(){
-
+function closeCall(finalStatus){
     stopRing();
-
     hideIncomingCall();
+    pendingIncomingCall = null;
 
-    pendingIncomingCall =
-        null;
-
-
-    if(
-        localStream
-    ){
-
-        localStream
-            .getTracks()
-            .forEach(
-                function(track){
-
-                    track.stop();
-
-                }
-            );
-
+    if(activeCallHistoryEntry){
+        const started = new Date(activeCallHistoryEntry.time).getTime() || Date.now();
+        const durationStart = callConnectedAt || started;
+        activeCallHistoryEntry.status = finalStatus || activeCallHistoryEntry.status || "ended";
+        activeCallHistoryEntry.duration = Math.max(0, Math.floor((Date.now() - durationStart) / 1000));
+        addCallHistoryEntry(activeCallHistoryEntry);
     }
 
+    activeCallHistoryEntry = null;
+    callConnectedAt = null;
 
-    if(
-        peerConnection
-    ){
-
-        peerConnection.close();
-
+    if(localStream){
+        localStream.getTracks().forEach(function(track){ track.stop(); });
     }
+    if(peerConnection) peerConnection.close();
 
+    if(remoteAudioSource){
+        try{remoteAudioSource.disconnect();}catch(error){}
+    }
+    if(remoteAudioGain){
+        try{remoteAudioGain.disconnect();}catch(error){}
+    }
+    remoteAudioSource = null;
+    remoteAudioGain = null;
+    remoteAudioStream = null;
 
-    localStream =
-        null;
+    localStream = null;
+    peerConnection = null;
+    currentCallUser = null;
+    pendingIceCandidates = [];
+    speakerEnabled = true;
 
-    peerConnection =
-        null;
+    const remoteVideo = document.getElementById("remoteVideo");
+    const remoteAudio = document.getElementById("remoteAudio");
+    const myVideo = document.getElementById("myVideo");
+    if(remoteVideo){
+        remoteVideo.srcObject = null;
+        remoteVideo.muted = false;
+        remoteVideo.volume = 1;
+    }
+    if(remoteAudio){
+        remoteAudio.srcObject = null;
+        remoteAudio.muted = false;
+        remoteAudio.volume = 1;
+    }
+    if(myVideo) myVideo.srcObject = null;
 
-    currentCallUser =
-        null;
-
-
-    document.getElementById(
-        "remoteVideo"
-    ).srcObject =
-        null;
-
-
-    document.getElementById(
-        "myVideo"
-    ).srcObject =
-        null;
-
-
-    document.getElementById(
-        "callScreen"
-    ).style.display =
-        "none";
-
+    const screen = document.getElementById("callScreen");
+    if(screen){
+        screen.classList.remove("audio-call");
+        screen.style.display = "none";
+    }
+    updateCallModeUI();
 }
+
 
 
 /* =====================================================

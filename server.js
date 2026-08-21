@@ -1,4 +1,5 @@
-﻿const express = require("express");
+﻿const twilio = require("twilio");
+const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const session = require("express-session");
@@ -459,6 +460,70 @@ const upload = multer({
         }
     }
 });
+
+app.get(
+    "/api/ice-servers",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const accountSid =
+                process.env.TWILIO_ACCOUNT_SID;
+
+            const authToken =
+                process.env.TWILIO_AUTH_TOKEN;
+
+            if (
+                !accountSid ||
+                !authToken
+            ) {
+                return res.json({
+                    ok: true,
+                    source: "stun-fallback",
+                    ice_servers: [
+                        {
+                            urls:
+                                "stun:stun.l.google.com:19302"
+                        }
+                    ]
+                });
+            }
+
+            const client =
+                twilio(
+                    accountSid,
+                    authToken
+                );
+
+            const token =
+                await client.tokens.create();
+
+            return res.json({
+                ok: true,
+                source: "twilio",
+                ice_servers:
+                    token.iceServers
+            });
+
+        } catch (error) {
+
+            console.log(
+                "ICE SERVER ERROR:",
+                error
+            );
+
+            return res.json({
+                ok: true,
+                source: "stun-fallback",
+                ice_servers: [
+                    {
+                        urls:
+                            "stun:stun.l.google.com:19302"
+                    }
+                ]
+            });
+        }
+    }
+);
 
 /* =====================================================
    HELPERS
