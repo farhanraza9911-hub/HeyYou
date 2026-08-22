@@ -1543,11 +1543,6 @@ body.dark .bottom-nav{background:#202c33;border-color:#374045;}
     .bottom-nav{
         width:100%;
         height:68px;
-        position:fixed;
-        left:0;
-        right:0;
-        bottom:24px;
-        z-index:100;
     }
 
     .bottom-nav-icon{
@@ -1571,6 +1566,25 @@ body.dark .bottom-nav{background:#202c33;border-color:#374045;}
         width:100%;
         min-width:100%;
         height:100%;
+        min-height:0;
+    }
+
+    body.mobile-chat-open .chat{
+        height:calc(100% - 12px);
+        min-height:0;
+    }
+
+    body.mobile-chat-open .messages{
+        min-height:0;
+        padding-bottom:18px;
+    }
+
+    body.mobile-chat-open .composer{
+        position:relative;
+        bottom:12px;
+        width:100%;
+        z-index:50;
+        padding-bottom:12px;
     }
 
     body.mobile-chat-open .sidebar{
@@ -2186,9 +2200,9 @@ body.chat-open .mobile-back{
 
         <button id="speakerCallBtn" class="call-control-button" type="button" onclick="toggleSpeaker()" title="Speaker on" aria-label="Speaker on">🔊</button>
 
-        <button id="loudSpeakerCallBtn" class="call-control-button" type="button" onclick="enableLoudSpeaker()" title="Open loudspeaker" aria-label="Open loudspeaker">📢</button>
-
         <button id="cameraCallBtn" class="call-control-button" type="button" onclick="toggleCamera()" title="Camera on" aria-label="Camera on">📷</button>
+
+        <button id="switchCameraBtn" class="call-control-button" type="button" onclick="switchCamera()" title="Switch camera" aria-label="Switch camera">🔄</button>
 
         <button class="end-call" type="button" onclick="endCall()" title="End call" aria-label="End call">📞</button>
 
@@ -7356,51 +7370,49 @@ function toggleSpeaker(){
     updateCallModeUI();
 }
 
-async function enableLoudSpeaker(){
-    const remoteAudio = document.getElementById("remoteAudio");
-    const remoteVideo = document.getElementById("remoteVideo");
+async function switchCamera(){
+    if(!localStream || currentCallMode !== "video") return;
 
-    for(const media of [remoteAudio, remoteVideo]){
-        if(!media) continue;
+    const oldTrack = localStream.getVideoTracks()[0];
+    if(!oldTrack){
+        showToast("Camera is not available for this call");
+        return;
+    }
 
-        media.muted = false;
-        media.volume = 1;
+    const settings = oldTrack.getSettings ? oldTrack.getSettings() : {};
+    const nextFacing = settings.facingMode === "environment" ? "user" : "environment";
 
-        if(typeof media.setSinkId === "function"){
-            try{
-                await media.setSinkId("default");
-            }catch(error){
-                console.warn("Loudspeaker routing:", error);
+    try{
+        const newStream = await navigator.mediaDevices.getUserMedia({
+            video:{facingMode:{ideal:nextFacing}},
+            audio:false
+        });
+
+        const newTrack = newStream.getVideoTracks()[0];
+        if(!newTrack) return;
+
+        if(typeof peerConnection !== "undefined" && peerConnection && peerConnection.getSenders){
+            const sender = peerConnection.getSenders().find(function(s){
+                return s.track && s.track.kind === "video";
+            });
+            if(sender){
+                await sender.replaceTrack(newTrack);
             }
         }
 
-        if(typeof media.play === "function"){
-            try{
-                await media.play();
-            }catch(error){
-                console.warn("Loudspeaker playback:", error);
-            }
+        localStream.removeTrack(oldTrack);
+        oldTrack.stop();
+        localStream.addTrack(newTrack);
+
+        const myVideo = document.getElementById("myVideo");
+        if(myVideo){
+            myVideo.srcObject = localStream;
+            myVideo.muted = true;
+            myVideo.play().catch(function(){});
         }
-    }
-
-    if(navigator.audioSession){
-        try{
-            navigator.audioSession.type = "playback";
-        }catch(error){
-            console.warn("Audio session:", error);
-        }
-    }
-
-    if(typeof remoteAudioGain !== "undefined" && remoteAudioGain){
-        remoteAudioGain.gain.value = 1;
-    }
-
-    if(typeof speakerEnabled !== "undefined"){
-        speakerEnabled = true;
-    }
-
-    if(typeof updateCallModeUI === "function"){
-        updateCallModeUI();
+    }catch(error){
+        console.warn("Camera switch failed:", error);
+        showToast("Unable to switch camera");
     }
 }
 
