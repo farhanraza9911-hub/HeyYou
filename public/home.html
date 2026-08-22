@@ -1543,6 +1543,12 @@ body.dark .bottom-nav{background:#202c33;border-color:#374045;}
     .bottom-nav{
         width:100%;
         height:68px;
+        position:fixed;
+        left:0;
+        right:0;
+        bottom:24px;
+        z-index:100;
+        box-shadow:0 -3px 12px #00000018;
     }
 
     .bottom-nav-icon{
@@ -1566,25 +1572,6 @@ body.dark .bottom-nav{background:#202c33;border-color:#374045;}
         width:100%;
         min-width:100%;
         height:100%;
-        min-height:0;
-    }
-
-    body.mobile-chat-open .chat{
-        height:calc(100% - 12px);
-        min-height:0;
-    }
-
-    body.mobile-chat-open .messages{
-        min-height:0;
-        padding-bottom:18px;
-    }
-
-    body.mobile-chat-open .composer{
-        position:relative;
-        bottom:12px;
-        width:100%;
-        z-index:50;
-        padding-bottom:12px;
     }
 
     body.mobile-chat-open .sidebar{
@@ -1795,8 +1782,25 @@ body.chat-open .mobile-back{
     body.chat-open .chat{
         display:flex;
     }
+
+    body.chat-open .composer{
+        position:relative;
+        bottom:24px;
+        z-index:80;
+        padding-bottom:12px;
+    }
+
+    body.chat-open .messages{
+        padding-bottom:28px;
+        min-height:0;
+    }
 }
 
+
+.group-modal{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;z-index:1000;padding:18px}
+.group-modal.show{display:flex}.group-box{width:min(420px,100%);max-height:85vh;overflow:auto;background:#fff;border-radius:16px;padding:18px;box-shadow:0 15px 50px #0004}.group-box-head{display:flex;justify-content:space-between;align-items:center;font-size:18px;margin-bottom:14px}.group-box-head button{border:0;background:transparent;font-size:20px}.primary-button{width:100%;border:0;border-radius:10px;padding:11px;background:#128c7e;color:#fff;font-weight:700;margin:6px 0}.group-name-input{width:100%;box-sizing:border-box;padding:11px;border:1px solid #ddd;border-radius:10px;margin:10px 0}.group-add-title{font-weight:700;margin:8px 0}.group-contact{display:flex;align-items:center;gap:9px;padding:8px 0}.group-contact input{width:18px;height:18px}.group-row{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid #eee;cursor:pointer}.group-row strong{display:block}.group-row small{color:#777}
+.group-remote-grid{position:absolute;inset:10px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px;pointer-events:none}.group-remote-video{width:100%;height:100%;object-fit:cover;border-radius:12px;background:#111}
+.group-row button{border:0;background:transparent;font-size:20px;padding:6px}.group-contact span{flex:1}
 </style>
 
 </head>
@@ -1813,15 +1817,22 @@ body.chat-open .mobile-back{
         HeyYou
     </div>
 
-    <button
-        class="header-settings-button"
-        type="button"
-        onclick="openSettings()"
-        title="Settings"
-        aria-label="Settings"
-    >
-        ⚙️
-    </button>
+    <div class="header-right">
+        <div class="my-profile" title="My profile" aria-label="My profile">
+            <div class="my-avatar" id="myAvatar">?</div>
+            <span id="myName"></span>
+        </div>
+
+        <button
+            class="header-settings-button"
+            type="button"
+            onclick="openSettings()"
+            title="Settings"
+            aria-label="Settings"
+        >
+            ⋮
+        </button>
+    </div>
 
 </header>
 
@@ -1907,6 +1918,10 @@ body.chat-open .mobile-back{
                 <span class="bottom-nav-icon">🕘</span>
                 <span>Calls</span>
             </button>
+            <button id="groupsNav" class="bottom-nav-item" type="button" onclick="openGroupMenu()" title="Groups">
+                <span class="bottom-nav-icon">👨‍👩‍👧‍👦</span>
+                <span>Groups</span>
+            </button>
         </nav>
 
     </aside>
@@ -1944,6 +1959,8 @@ body.chat-open .mobile-back{
             </div>
 
             <div class="chat-actions">
+                <button id="groupAudioCallButton" class="call-button audio" onclick="startGroupCall('audio')" title="Group audio call" style="display:none"><span class="call-icon">📞</span><span class="label">Group</span></button>
+                <button id="groupVideoCallButton" class="call-button video" onclick="startGroupCall('video')" title="Group video call" style="display:none"><span class="call-icon">📹</span><span class="label">Group</span></button>
                 <button
                     class="call-button audio"
                     onclick="startCall('audio')"
@@ -1987,6 +2004,15 @@ body.chat-open .mobile-back{
                 title="Send file"
             >📎</button>
 
+            <button
+                id="locationBtn"
+                class="file-button"
+                type="button"
+                onclick="sendLocation()"
+                title="Send location"
+                aria-label="Send location"
+            >📍</button>
+
             <input
                 type="text"
                 id="messageInput"
@@ -2005,6 +2031,28 @@ body.chat-open .mobile-back{
 
 </div>
 
+
+<!-- =====================================================
+     GROUPS
+===================================================== -->
+<div class="group-modal" id="groupModal">
+  <div class="group-box">
+    <div class="group-box-head"><strong>Groups</strong><button type="button" onclick="closeGroupMenu()">✕</button></div>
+    <button class="primary-button" type="button" onclick="showCreateGroup()">＋ Create Group</button>
+    <div id="groupList"></div>
+    <div id="addGroupPanel" style="display:none">
+      <div class="group-add-title">Add contacts to this group</div>
+      <div id="addGroupContactsList"></div>
+      <button class="primary-button" type="button" onclick="saveGroupMembers()">Add Selected Contacts</button>
+    </div>
+    <div id="createGroupPanel" style="display:none">
+      <input id="groupNameInput" class="group-name-input" placeholder="Group name">
+      <div class="group-add-title">Add contacts</div>
+      <div id="groupContactsList"></div>
+      <button class="primary-button" type="button" onclick="createGroup()">Create Group</button>
+    </div>
+  </div>
+</div>
 
 <!-- =====================================================
      STATUS CREATOR
@@ -2180,7 +2228,9 @@ body.chat-open .mobile-back{
         playsinline
     ></video>
 
-    <audio
+        <div id="groupRemoteGrid" class="group-remote-grid"></div>
+
+<audio
         id="remoteAudio"
         autoplay
         playsinline
@@ -2201,8 +2251,6 @@ body.chat-open .mobile-back{
         <button id="speakerCallBtn" class="call-control-button" type="button" onclick="toggleSpeaker()" title="Speaker on" aria-label="Speaker on">🔊</button>
 
         <button id="cameraCallBtn" class="call-control-button" type="button" onclick="toggleCamera()" title="Camera on" aria-label="Camera on">📷</button>
-
-        <button id="switchCameraBtn" class="call-control-button" type="button" onclick="switchCamera()" title="Switch camera" aria-label="Switch camera">🔄</button>
 
         <button class="end-call" type="button" onclick="endCall()" title="End call" aria-label="End call">📞</button>
 
@@ -3120,6 +3168,11 @@ body.chat-open .mobile-back{
 let me = null;
 
 let selectedUser = null;
+let selectedGroup = null;
+let myGroups = [];
+let groupPeers = {};
+let groupCallId = null;
+let groupCallMode = null;
 
 let socket = null;
 
@@ -3538,6 +3591,12 @@ function connectSocket(){
     );
 
 
+    socket.on("group-message", function(message){
+        if(selectedGroup && Number(message.group_id)===Number(selectedGroup.id)) addMessage(message);
+    });
+    socket.on("group-created", function(){ loadGroups(); });
+    socket.on("group-updated", function(){ loadGroups(); });
+
     socket.on(
         "status-created",
         function(){
@@ -3603,6 +3662,29 @@ function connectSocket(){
         }
     );
 
+
+    socket.on("group-call-invite", function(data){
+        if(!confirm("Incoming group "+(data.mode==="video"?"video":"audio")+" call. Accept?")) return;
+        acceptGroupInvite(data);
+    });
+    socket.on("group-call-offer", async function(data){
+        if(!groupPeers[data.from]){
+            const pc=new RTCPeerConnection(iceServers); groupPeers[data.from]=pc;
+            localStream.getTracks().forEach(track=>pc.addTrack(track,localStream));
+            pc.onicecandidate=e=>{if(e.candidate) socket.emit("group-call-ice",{group_id:data.group_id,call_id:data.call_id,to:data.from,candidate:e.candidate});};
+            pc.ontrack=e=>attachGroupRemote(data.from,e.streams[0]);
+        }
+        const pc=groupPeers[data.from]; await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+        const answer=await pc.createAnswer(); await pc.setLocalDescription(answer);
+        socket.emit("group-call-answer",{group_id:data.group_id,call_id:data.call_id,to:data.from,answer});
+    });
+    socket.on("group-call-answer", async function(data){
+        const pc=groupPeers[data.from]; if(pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+    });
+    socket.on("group-call-ice", async function(data){
+        const pc=groupPeers[data.from]; if(pc && pc.remoteDescription) await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+    });
+    socket.on("group-call-ended", function(){closeGroupCall();});
 
     socket.on(
         "incoming-call",
@@ -3707,8 +3789,79 @@ function connectSocket(){
 
 
 /* =====================================================
+   GROUPS
+===================================================== */
+async function loadGroups(){
+    try{const r=await fetch("/api/groups"); if(!r.ok) return; myGroups=await r.json();}catch(e){console.error(e);}
+}
+function closeGroupMenu(){document.getElementById("groupModal").classList.remove("show");}
+async function renderGroupMenu(){
+    const list=document.getElementById("groupList");
+    document.getElementById("createGroupPanel").style.display="none";
+    document.getElementById("addGroupPanel").style.display="none";
+    list.innerHTML=myGroups.length?myGroups.map(g=>`<div class="group-row" onclick="selectGroup(${Number(g.id)})"><span style="font-size:25px">👥</span><div style="flex:1"><strong>${escapeHtml(g.name)}</strong><small>${g.members.length} members</small></div>${Number(g.owner_id)===Number(me.id)?`<button type="button" onclick="event.stopPropagation();showAddGroupMembers(${Number(g.id)})" title="Add contacts">＋</button>`:""}</div>`).join(""):'<div style="padding:14px;color:#777">No groups yet.</div>';
+    document.getElementById("groupModal").classList.add("show");
+}
+async function showCreateGroup(){
+    const panel=document.getElementById("createGroupPanel");
+    panel.style.display="block";
+    document.getElementById("groupNameInput").value="";
+    const r=await fetch("/api/users"); const users=r.ok?await r.json():[];
+    document.getElementById("groupContactsList").innerHTML=users.filter(u=>Number(u.id)!==Number(me.id)).map(u=>`<label class="group-contact"><input type="checkbox" value="${Number(u.id)}"><span>${escapeHtml(u.name||"User")}</span></label>`).join("");
+}
+async function showAddGroupMembers(groupId){
+    const group=myGroups.find(g=>Number(g.id)===Number(groupId));
+    if(!group || Number(group.owner_id)!==Number(me.id)) return;
+    const r=await fetch("/api/users"); const users=r.ok?await r.json():[];
+    const existing=new Set(group.members.map(Number));
+    const available=users.filter(u=>!existing.has(Number(u.id)));
+    document.getElementById("createGroupPanel").style.display="none";
+    const panel=document.getElementById("addGroupPanel"); panel.style.display="block"; panel.dataset.groupId=String(groupId);
+    document.getElementById("addGroupContactsList").innerHTML=available.length?available.map(u=>`<label class="group-contact"><input type="checkbox" value="${Number(u.id)}"><span>${escapeHtml(u.name||"User")}</span></label>`).join(""):"<div style=\"padding:10px;color:#777\">No more contacts to add.</div>";
+    document.getElementById("groupModal").classList.add("show");
+}
+async function saveGroupMembers(){
+    const panel=document.getElementById("addGroupPanel"); const groupId=Number(panel.dataset.groupId);
+    const members=[...document.querySelectorAll("#addGroupContactsList input:checked")].map(x=>Number(x.value));
+    if(!members.length){alert("Select at least one contact.");return;}
+    const r=await fetch("/api/groups/"+groupId+"/members",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({members})});
+    const data=await r.json(); if(!r.ok){alert(data.error||"Could not add contacts");return;}
+    closeGroupMenu(); await loadGroups();
+    if(selectedGroup && Number(selectedGroup.id)===groupId){selectedGroup=data.group; document.getElementById("chatStatus").textContent=selectedGroup.members.length+" members";}
+}
+
+async function createGroup(){
+    const name=document.getElementById("groupNameInput").value.trim();
+    const members=[...document.querySelectorAll("#groupContactsList input:checked")].map(x=>Number(x.value));
+    if(!name || !members.length){alert("Enter a group name and select at least one contact.");return;}
+    const r=await fetch("/api/groups",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,members})});
+    const data=await r.json();
+    if(!r.ok){alert(data.error||"Could not create group");return;}
+    closeGroupMenu(); await loadGroups(); selectGroup(data.group.id);
+}
+async function selectGroup(id){
+    await loadGroups();
+    selectedGroup=myGroups.find(g=>Number(g.id)===Number(id));
+    if(!selectedGroup) return;
+    document.getElementById("groupAudioCallButton")?.style.setProperty("display","inline-flex");
+    document.getElementById("groupVideoCallButton")?.style.setProperty("display","inline-flex");
+    selectedUser=null;
+    document.getElementById("chatUser").textContent=selectedGroup.name;
+    document.getElementById("chatStatus").textContent=selectedGroup.members.length+" members";
+    document.getElementById("chatAvatar").innerHTML="👥";
+    document.body.classList.add("chat-open","mobile-chat-open");
+    closeGroupMenu();
+    await loadMessages();
+}
+function openCreateGroupFromChat(){showCreateGroup();}
+
+/* =====================================================
    SIDEBAR
 ===================================================== */
+
+function openGroupMenu(){
+    loadGroups().then(renderGroupMenu);
+}
 
 function showSidebarTab(tab){
 
@@ -4153,6 +4306,9 @@ async function refreshSelectedUserStatus(){
 
 async function selectUser(user){
 
+    selectedGroup=null;
+    document.getElementById("groupAudioCallButton")?.style.setProperty("display","none");
+    document.getElementById("groupVideoCallButton")?.style.setProperty("display","none");
     selectedUser =
         user;
 
@@ -4202,6 +4358,20 @@ async function selectUser(user){
 ===================================================== */
 
 async function loadMessages(){
+
+    if(selectedGroup){
+        try{
+            const response=await fetch("/api/groups/"+encodeURIComponent(selectedGroup.id)+"/messages");
+            if(!response.ok) return;
+            const messages=await response.json();
+            const box=document.getElementById("messages");
+            box.innerHTML="";
+            if(!messages.length){box.innerHTML='<div class="empty">No messages yet</div>';return;}
+            messages.forEach(m=>addMessage(m,false));
+            box.scrollTop=box.scrollHeight;
+        }catch(error){console.error("Group messages:",error);}
+        return;
+    }
 
     if(
         !selectedUser
@@ -4530,7 +4700,59 @@ function addMessage(
    SEND MESSAGE
 ===================================================== */
 
+function sendLocation(){
+    if(!selectedUser){
+        alert("Please select a contact first.");
+        return;
+    }
+
+    if(!socket || !socket.connected){
+        alert("Server connection lost.");
+        return;
+    }
+
+    if(appSettings.blockedUsers.map(Number).includes(Number(selectedUser.id))){
+        alert("This user is blocked.");
+        return;
+    }
+
+    if(!navigator.geolocation){
+        alert("Location is not supported by this browser.");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        function(position){
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const mapsUrl = "https://www.google.com/maps?q=" + lat + "," + lng;
+
+            socket.emit("message", {
+                to:selectedUser.id,
+                text:"📍 My location\n" + mapsUrl
+            });
+        },
+        function(error){
+            console.warn("Location error:", error);
+            alert("Please allow location access to send your location.");
+        },
+        {
+            enableHighAccuracy:true,
+            timeout:10000,
+            maximumAge:0
+        }
+    );
+}
+
 function sendMessage(){
+    if(selectedGroup){
+        const input=document.getElementById("messageInput");
+        const text=input.value.trim();
+        if(!text || !socket?.connected) return;
+        socket.emit("group-message",{group_id:selectedGroup.id,text});
+        input.value="";
+        return;
+    }
 
     if(
         !selectedUser
@@ -4666,6 +4888,8 @@ async function sendFile(){
     )
         return;
 
+    const isGroupMessage=!!selectedGroup;
+    if(!isGroupMessage && !selectedUser) return;
 
     try{
 
@@ -6349,6 +6573,35 @@ function closeStatusViewer(){
    CALL
 ===================================================== */
 
+async function startGroupCall(mode){
+    if(!selectedGroup || !socket?.connected) return;
+    try{
+        groupCallId=crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random();
+        groupCallMode=mode;
+        socket.emit("group-call-start",{group_id:selectedGroup.id,call_id:groupCallId,mode});
+        const constraints={audio:true,video:mode==="video"};
+        localStream=await navigator.mediaDevices.getUserMedia(constraints);
+        document.getElementById("callScreen").classList.add("show");
+        document.getElementById("callInfo").textContent="Group "+(mode==="video"?"video":"audio")+" call: "+selectedGroup.name;
+        for(const memberId of selectedGroup.members){
+            if(Number(memberId)===Number(me.id)) continue;
+            const pc=new RTCPeerConnection(iceServers);
+            groupPeers[memberId]=pc;
+            localStream.getTracks().forEach(track=>pc.addTrack(track,localStream));
+            pc.onicecandidate=e=>{if(e.candidate) socket.emit("group-call-ice",{group_id:selectedGroup.id,call_id:groupCallId,to:memberId,candidate:e.candidate});};
+            pc.ontrack=e=>attachGroupRemote(memberId,e.streams[0]);
+            const offer=await pc.createOffer(); await pc.setLocalDescription(offer);
+            socket.emit("group-call-offer",{group_id:selectedGroup.id,call_id:groupCallId,to:memberId,offer,mode});
+        }
+    }catch(e){console.error(e);alert("Camera/Microphone permission required.");closeCall();}
+}
+function attachGroupRemote(userId,stream){
+    const grid=document.getElementById("groupRemoteGrid")||document.getElementById("callScreen");
+    let v=document.getElementById("groupRemote-"+userId);
+    if(!v){v=document.createElement("video");v.id="groupRemote-"+userId;v.autoplay=true;v.playsInline=true;v.className="group-remote-video";grid.appendChild(v);}
+    v.srcObject=stream; v.play().catch(()=>{});
+}
+
 async function startCall(
     mode
 ){
@@ -7370,52 +7623,6 @@ function toggleSpeaker(){
     updateCallModeUI();
 }
 
-async function switchCamera(){
-    if(!localStream || currentCallMode !== "video") return;
-
-    const oldTrack = localStream.getVideoTracks()[0];
-    if(!oldTrack){
-        showToast("Camera is not available for this call");
-        return;
-    }
-
-    const settings = oldTrack.getSettings ? oldTrack.getSettings() : {};
-    const nextFacing = settings.facingMode === "environment" ? "user" : "environment";
-
-    try{
-        const newStream = await navigator.mediaDevices.getUserMedia({
-            video:{facingMode:{ideal:nextFacing}},
-            audio:false
-        });
-
-        const newTrack = newStream.getVideoTracks()[0];
-        if(!newTrack) return;
-
-        if(typeof peerConnection !== "undefined" && peerConnection && peerConnection.getSenders){
-            const sender = peerConnection.getSenders().find(function(s){
-                return s.track && s.track.kind === "video";
-            });
-            if(sender){
-                await sender.replaceTrack(newTrack);
-            }
-        }
-
-        localStream.removeTrack(oldTrack);
-        oldTrack.stop();
-        localStream.addTrack(newTrack);
-
-        const myVideo = document.getElementById("myVideo");
-        if(myVideo){
-            myVideo.srcObject = localStream;
-            myVideo.muted = true;
-            myVideo.play().catch(function(){});
-        }
-    }catch(error){
-        console.warn("Camera switch failed:", error);
-        showToast("Unable to switch camera");
-    }
-}
-
 function toggleCamera(){
     if(!localStream) return;
     const track = localStream.getVideoTracks()[0];
@@ -7424,7 +7631,27 @@ function toggleCamera(){
     updateCallModeUI();
 }
 
+async function acceptGroupInvite(data){
+    groupCallId=data.call_id; groupCallMode=data.mode;
+    try{
+        localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:data.mode==="video"});
+        document.getElementById("callScreen").classList.add("show");
+        document.getElementById("callInfo").textContent="Group call";
+    }catch(e){alert("Camera/Microphone permission required.");}
+}
+function closeGroupCall(){
+    Object.values(groupPeers).forEach(pc=>{try{pc.close();}catch(e){}}); groupPeers={}; groupCallId=null; groupCallMode=null;
+    if(localStream){localStream.getTracks().forEach(t=>t.stop()); localStream=null;}
+    document.querySelectorAll(".group-remote-video").forEach(v=>v.remove());
+    document.getElementById("callScreen")?.classList.remove("show");
+}
+
 function endCall(){
+    if(selectedGroup && groupCallId){
+        socket.emit("group-call-end",{group_id:selectedGroup.id,call_id:groupCallId});
+        closeGroupCall();
+        return;
+    }
     if(currentCallUser && socket){
         socket.emit("hangup", {to: currentCallUser});
     }
