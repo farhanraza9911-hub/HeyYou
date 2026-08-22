@@ -1543,6 +1543,11 @@ body.dark .bottom-nav{background:#202c33;border-color:#374045;}
     .bottom-nav{
         width:100%;
         height:68px;
+        position:fixed;
+        left:0;
+        right:0;
+        bottom:24px;
+        z-index:100;
     }
 
     .bottom-nav-icon{
@@ -2180,6 +2185,8 @@ body.chat-open .mobile-back{
         <button id="muteCallBtn" class="call-control-button" type="button" onclick="toggleMute()" title="Mute microphone" aria-label="Mute microphone">🎤</button>
 
         <button id="speakerCallBtn" class="call-control-button" type="button" onclick="toggleSpeaker()" title="Speaker on" aria-label="Speaker on">🔊</button>
+
+        <button id="loudSpeakerCallBtn" class="call-control-button" type="button" onclick="enableLoudSpeaker()" title="Open loudspeaker" aria-label="Open loudspeaker">📢</button>
 
         <button id="cameraCallBtn" class="call-control-button" type="button" onclick="toggleCamera()" title="Camera on" aria-label="Camera on">📷</button>
 
@@ -7347,6 +7354,54 @@ function toggleSpeaker(){
     }
 
     updateCallModeUI();
+}
+
+async function enableLoudSpeaker(){
+    const remoteAudio = document.getElementById("remoteAudio");
+    const remoteVideo = document.getElementById("remoteVideo");
+
+    for(const media of [remoteAudio, remoteVideo]){
+        if(!media) continue;
+
+        media.muted = false;
+        media.volume = 1;
+
+        if(typeof media.setSinkId === "function"){
+            try{
+                await media.setSinkId("default");
+            }catch(error){
+                console.warn("Loudspeaker routing:", error);
+            }
+        }
+
+        if(typeof media.play === "function"){
+            try{
+                await media.play();
+            }catch(error){
+                console.warn("Loudspeaker playback:", error);
+            }
+        }
+    }
+
+    if(navigator.audioSession){
+        try{
+            navigator.audioSession.type = "playback";
+        }catch(error){
+            console.warn("Audio session:", error);
+        }
+    }
+
+    if(typeof remoteAudioGain !== "undefined" && remoteAudioGain){
+        remoteAudioGain.gain.value = 1;
+    }
+
+    if(typeof speakerEnabled !== "undefined"){
+        speakerEnabled = true;
+    }
+
+    if(typeof updateCallModeUI === "function"){
+        updateCallModeUI();
+    }
 }
 
 function toggleCamera(){

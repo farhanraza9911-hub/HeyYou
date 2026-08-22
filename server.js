@@ -1,5 +1,4 @@
-﻿const twilio = require("twilio");
-const express = require("express");
+﻿const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const session = require("express-session");
@@ -466,60 +465,73 @@ app.get(
     requireAuth,
     async (req, res) => {
         try {
-            const accountSid =
-                process.env.TWILIO_ACCOUNT_SID;
+            const turnKeyId =
+                process.env.CLOUDFLARE_TURN_KEY_ID;
 
-            const authToken =
-                process.env.TWILIO_AUTH_TOKEN;
+            const turnApiToken =
+                process.env.CLOUDFLARE_TURN_API_TOKEN;
 
-            if (
-                !accountSid ||
-                !authToken
-            ) {
-                return res.json({
-                    ok: true,
-                    source: "stun-fallback",
-                    ice_servers: [
-                        {
-                            urls:
-                                "stun:stun.l.google.com:19302"
-                        }
-                    ]
+            if (!turnKeyId || !turnApiToken) {
+                console.log(
+                    "ICE SERVER ERROR: Cloudflare TURN environment variables are missing"
+                );
+
+                return res.status(503).json({
+                    ok: false,
+                    error: "TURN service is not configured."
                 });
             }
 
-            const client =
-                twilio(
-                    accountSid,
-                    authToken
+            const endpoint =
+                "https://rtc.live.cloudflare.com/v1/turn/keys/" +
+                encodeURIComponent(turnKeyId) +
+                "/credentials/generate-ice-servers";
+
+            const response = await fetch(
+                endpoint,
+                {
+                    method: "POST",
+                    headers: {
+                        "Authorization":
+                            "Bearer " + turnApiToken,
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body: JSON.stringify({
+                        ttl: 86400
+                    })
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok || !Array.isArray(data.iceServers)) {
+                console.log(
+                    "CLOUDFLARE ICE SERVER ERROR:",
+                    response.status,
+                    data
                 );
 
-            const token =
-                await client.tokens.create();
+                return res.status(502).json({
+                    ok: false,
+                    error: "Could not get TURN servers."
+                });
+            }
 
             return res.json({
                 ok: true,
-                source: "twilio",
-                ice_servers:
-                    token.iceServers
+                source: "cloudflare",
+                ice_servers: data.iceServers
             });
-
         } catch (error) {
-
             console.log(
                 "ICE SERVER ERROR:",
                 error
             );
 
-            return res.json({
-                ok: true,
-                source: "stun-fallback",
-                ice_servers: [
-                    {
-                        urls:
-                            "stun:stun.l.google.com:19302"
-                    }
-                ]
+            return res.status(502).json({
+                ok: false,
+                error: "TURN service unavailable."
             });
         }
     }
