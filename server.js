@@ -909,19 +909,72 @@ app.post(
 async function sendPasswordResetOtp(email, otp) {
     const user = String(process.env.GMAIL_USER || "").trim();
     const pass = String(process.env.GMAIL_APP_PASSWORD || "").replace(/\s/g, "");
-    if (!user || !pass) throw new Error("Gmail SMTP is not configured on the server.");
 
-    const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: { user, pass }
-    });
+    if (!user || !pass) {
+        throw new Error("GMAIL_USER or GMAIL_APP_PASSWORD is missing on Render.");
+    }
 
-    await transporter.sendMail({
-        from: user,
-        to: email,
-        subject: "HeyYou password reset OTP",
-        text: `Your HeyYou password reset OTP is ${otp}. It expires in 10 minutes.`
-    });
+    /*
+       Gmail SMTP only. No other app settings are changed.
+       Try the standard SMTPS port first, then STARTTLS if needed.
+    */
+    const smtpOptions = [
+        {
+            host: "smtp.gmail.com",
+            port: 465,
+            secure: true
+        },
+        {
+            host: "smtp.gmail.com",
+            port: 587,
+            secure: false,
+            requireTLS: true
+        }
+    ];
+
+    let lastError = null;
+
+    for (const options of smtpOptions) {
+        const transporter = nodemailer.createTransport({
+            ...options,
+            auth: {
+                user,
+                pass
+            },
+            connectionTimeout: 15000,
+            greetingTimeout: 15000,
+            socketTimeout: 20000
+        });
+
+        try {
+            await transporter.sendMail({
+                from: user,
+                to: email,
+                subject: "HeyYou password reset OTP",
+                text: `Your HeyYou password reset OTP is ${otp}. It expires in 10 minutes.`
+            });
+
+            try {
+                transporter.close();
+            } catch (_) {}
+
+            return;
+        } catch (error) {
+            lastError = error;
+            console.log(
+                "GMAIL SMTP ATTEMPT FAILED:",
+                options.port,
+                error.code || "",
+                error.message || error
+            );
+
+            try {
+                transporter.close();
+            } catch (_) {}
+        }
+    }
+
+    throw lastError || new Error("Gmail SMTP could not send the OTP.");
 }
 
 app.post("/api/password-reset/request", async (req, res) => {

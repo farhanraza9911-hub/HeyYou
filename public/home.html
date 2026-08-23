@@ -1450,7 +1450,15 @@ body.dark .bottom-nav{background:#202c33;border-color:#374045;}
 .bottom-nav-icon{font-size:21px;line-height:1;}
 .call-control-button{width:58px !important;height:58px !important;padding:0 !important;border-radius:50% !important;background:#ffffffdd !important;color:#222 !important;font-size:23px !important;margin:6px !important;display:inline-flex;align-items:center;justify-content:center;}
 .end-call{width:64px !important;height:64px !important;padding:0 !important;border-radius:50% !important;background:#d93025 !important;color:#fff !important;font-size:27px !important;display:inline-flex;align-items:center;justify-content:center;margin:6px !important;}
-#remoteAudio{display:none;}
+#remoteAudio{
+    position:fixed;
+    width:1px;
+    height:1px;
+    opacity:0;
+    pointer-events:none;
+    left:-9999px;
+    top:-9999px;
+}
 .call-screen.audio-call #remoteVideo{display:none;}
 .call-screen.audio-call #myVideo{display:none;}
 
@@ -3303,7 +3311,25 @@ async function loadIceServers(){
         if(response.ok){
             const data = await response.json();
             if(data && Array.isArray(data.ice_servers) && data.ice_servers.length){
-                iceServers = {iceServers:data.ice_servers};
+                const existing = Array.isArray(iceServers.iceServers)
+                    ? iceServers.iceServers
+                    : [];
+
+                const merged = [
+                    ...existing,
+                    ...data.ice_servers
+                ];
+
+                const seen = new Set();
+
+                iceServers = {
+                    iceServers: merged.filter(function(server){
+                        const key = JSON.stringify(server);
+                        if(seen.has(key)) return false;
+                        seen.add(key);
+                        return true;
+                    })
+                };
             }
         }
     }catch(error){
@@ -3335,7 +3361,7 @@ async function attachRemoteAudioStream(stream){
     remoteAudio.srcObject = stream;
     remoteAudio.autoplay = true;
     remoteAudio.playsInline = true;
-    remoteAudio.muted = !speakerEnabled;
+    remoteAudio.muted = false;
     remoteAudio.volume = speakerEnabled ? 1 : 0;
 
     /*
@@ -6981,7 +7007,16 @@ function createPeerConnection(){
             const remoteVideo = document.getElementById("remoteVideo");
 
             if(currentCallMode === "audio"){
-                attachRemoteAudioStream(stream).catch(function(error){
+                attachRemoteAudioStream(stream).then(function(){
+                    const remoteAudio = document.getElementById("remoteAudio");
+                    if(remoteAudio && speakerEnabled){
+                        remoteAudio.muted = false;
+                        remoteAudio.volume = 1;
+                        remoteAudio.play().catch(function(error){
+                            console.warn("Remote audio retry:", error);
+                        });
+                    }
+                }).catch(function(error){
                     console.warn("Remote audio track:", error);
                 });
             }else if(remoteVideo){
