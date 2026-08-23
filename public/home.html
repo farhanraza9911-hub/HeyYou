@@ -302,6 +302,34 @@ body.dark .contacts-title{
     margin-right:4px;
 }
 
+async function syncPhoneContacts(){
+    if(!navigator.contacts || !navigator.contacts.select){
+        alert("Phone contact sync is supported on compatible mobile browsers only. Please use a browser that supports Contacts Picker.");
+        return;
+    }
+    try{
+        const contacts = await navigator.contacts.select(["name","tel"], {multiple:true});
+        const phones = [];
+        for(const contact of contacts){
+            (contact.tel || []).forEach(function(phone){ if(phone) phones.push(phone); });
+        }
+        if(!phones.length){ alert("No phone numbers selected."); return; }
+        const response = await fetch("/api/contacts/sync", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({phones})
+        });
+        const data = await response.json();
+        if(!response.ok){ alert(data.error || "Could not sync contacts."); return; }
+        await loadUsers();
+        alert((data.contacts || []).length + " HeyYou contacts synced.");
+    }catch(error){
+        if(error && error.name === "AbortError") return;
+        console.error("Phone contacts sync:", error);
+        alert("Could not access phone contacts.");
+    }
+}
+
 /* =====================================================
    USERS
 ===================================================== */
@@ -1801,6 +1829,12 @@ body.chat-open .mobile-back{
 .group-modal.show{display:flex}.group-box{width:min(420px,100%);max-height:85vh;overflow:auto;background:#fff;border-radius:16px;padding:18px;box-shadow:0 15px 50px #0004}.group-box-head{display:flex;justify-content:space-between;align-items:center;font-size:18px;margin-bottom:14px}.group-box-head button{border:0;background:transparent;font-size:20px}.primary-button{width:100%;border:0;border-radius:10px;padding:11px;background:#128c7e;color:#fff;font-weight:700;margin:6px 0}.group-name-input{width:100%;box-sizing:border-box;padding:11px;border:1px solid #ddd;border-radius:10px;margin:10px 0}.group-add-title{font-weight:700;margin:8px 0}.group-contact{display:flex;align-items:center;gap:9px;padding:8px 0}.group-contact input{width:18px;height:18px}.group-row{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid #eee;cursor:pointer}.group-row strong{display:block}.group-row small{color:#777}
 .group-remote-grid{position:absolute;inset:10px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px;pointer-events:none}.group-remote-video{width:100%;height:100%;object-fit:cover;border-radius:12px;background:#111}
 .group-row button{border:0;background:transparent;font-size:20px;padding:6px}.group-contact span{flex:1}
+
+@media (max-width: 700px){
+  body.chat-open .composer{position:sticky !important;bottom:0 !important;margin-bottom:env(safe-area-inset-bottom,0);background:#fff;}
+  body.chat-open .messages{padding-bottom:90px !important;overflow-y:auto;}
+  body.chat-open .chat{min-height:0;}
+}
 </style>
 
 </head>
@@ -1860,8 +1894,9 @@ body.chat-open .mobile-back{
                 >
             </div>
 
-            <div class="contacts-title" id="contactsTitle">
-                Contacts
+            <div class="contacts-title" id="contactsTitle" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                <span>Contacts</span>
+                <button type="button" onclick="syncPhoneContacts()" style="border:0;background:#128c7e;color:#fff;border-radius:7px;padding:5px 8px;font-size:12px;cursor:pointer">Sync Phone</button>
             </div>
 
             <div
@@ -3215,16 +3250,11 @@ let pendingIceCandidates = [];
 ===================================================== */
 
 let iceServers = {
-
     iceServers: [
-
-        {
-            urls:
-                "stun:stun.l.google.com:19302"
-        }
-
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun.cloudflare.com:3478" }
     ]
-
 };
 
 let iceServersLoaded = false;
@@ -3670,7 +3700,7 @@ function connectSocket(){
     socket.on("group-call-offer", async function(data){
         if(!groupPeers[data.from]){
             const pc=new RTCPeerConnection(iceServers); groupPeers[data.from]=pc;
-            localStream.getTracks().forEach(track=>pc.addTrack(track,localStream));
+            localStream.getTracks().forEach(function(track){ const sender=pc.addTrack(track,localStream); prioritizeAudioSender(sender); });
             pc.onicecandidate=e=>{if(e.candidate) socket.emit("group-call-ice",{group_id:data.group_id,call_id:data.call_id,to:data.from,candidate:e.candidate});};
             pc.ontrack=e=>attachGroupRemote(data.from,e.streams[0]);
         }
@@ -3806,13 +3836,13 @@ async function showCreateGroup(){
     const panel=document.getElementById("createGroupPanel");
     panel.style.display="block";
     document.getElementById("groupNameInput").value="";
-    const r=await fetch("/api/users"); const users=r.ok?await r.json():[];
+    const r=await fetch("/api/contacts"); const users=r.ok?await r.json():[];
     document.getElementById("groupContactsList").innerHTML=users.filter(u=>Number(u.id)!==Number(me.id)).map(u=>`<label class="group-contact"><input type="checkbox" value="${Number(u.id)}"><span>${escapeHtml(u.name||"User")}</span></label>`).join("");
 }
 async function showAddGroupMembers(groupId){
     const group=myGroups.find(g=>Number(g.id)===Number(groupId));
     if(!group || Number(group.owner_id)!==Number(me.id)) return;
-    const r=await fetch("/api/users"); const users=r.ok?await r.json():[];
+    const r=await fetch("/api/contacts"); const users=r.ok?await r.json():[];
     const existing=new Set(group.members.map(Number));
     const available=users.filter(u=>!existing.has(Number(u.id)));
     document.getElementById("createGroupPanel").style.display="none";
@@ -3979,6 +4009,34 @@ async function loadUsersAndOpenUser(userId){
     }catch(error){ console.error("Open history user:", error); }
 }
 
+async function syncPhoneContacts(){
+    if(!navigator.contacts || !navigator.contacts.select){
+        alert("Phone contact sync is supported on compatible mobile browsers only. Please use a browser that supports Contacts Picker.");
+        return;
+    }
+    try{
+        const contacts = await navigator.contacts.select(["name","tel"], {multiple:true});
+        const phones = [];
+        for(const contact of contacts){
+            (contact.tel || []).forEach(function(phone){ if(phone) phones.push(phone); });
+        }
+        if(!phones.length){ alert("No phone numbers selected."); return; }
+        const response = await fetch("/api/contacts/sync", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({phones})
+        });
+        const data = await response.json();
+        if(!response.ok){ alert(data.error || "Could not sync contacts."); return; }
+        await loadUsers();
+        alert((data.contacts || []).length + " HeyYou contacts synced.");
+    }catch(error){
+        if(error && error.name === "AbortError") return;
+        console.error("Phone contacts sync:", error);
+        alert("Could not access phone contacts.");
+    }
+}
+
 /* =====================================================
    USERS
 ===================================================== */
@@ -4014,14 +4072,9 @@ async function loadUsers(){
             (appSettings.blockedUsers || [])
                 .map(Number);
 
-        /*
-           Empty search = SAVED CONTACTS ONLY.
-           Typing = SEARCH ALL USERS.
-        */
+        /* Only saved HeyYou contacts are ever shown. Search filters those contacts. */
         const endpoint =
-            query
-                ? "/api/users?q=" + encodeURIComponent(query)
-                : "/api/contacts";
+            "/api/contacts?q=" + encodeURIComponent(query);
 
         const response =
             await fetch(endpoint);
@@ -4045,47 +4098,17 @@ async function loadUsers(){
                 !blocked.includes(Number(user.id));
         });
 
-        title.textContent =
-            query ? "Search results" : "Contacts";
-
-        list.classList.toggle(
-            "search-mode",
-            !!query
-        );
+        title.querySelector("span").textContent = query ? "Contacts" : "Contacts";
+        list.classList.remove("search-mode");
 
         list.innerHTML = "";
 
         if(!users.length){
             list.innerHTML =
                 '<div class="empty">' +
-                (query ? "No users found" : "No contacts saved yet") +
+                "No contacts saved yet" +
                 '</div>';
             return;
-        }
-
-        /* For search results we need to know which users are already saved. */
-        let savedIds = new Set();
-
-        if(query){
-            try{
-                const contactsResponse =
-                    await fetch("/api/contacts");
-
-                if(contactsResponse.ok){
-                    const contacts =
-                        await contactsResponse.json();
-
-                    if(Array.isArray(contacts)){
-                        contacts.forEach(function(contact){
-                            if(contact && contact.id != null){
-                                savedIds.add(Number(contact.id));
-                            }
-                        });
-                    }
-                }
-            }catch(error){
-                console.error("Contacts lookup:", error);
-            }
         }
 
         users.forEach(function(user){
@@ -4504,15 +4527,17 @@ function addMessage(
     let html = "";
 
 
-    if(
-        message.text
-    ){
-
-        html +=
-            escapeHtml(
-                message.text
-            );
-
+    if(message.text){
+        const text = String(message.text);
+        const locationMatch = text.match(/(?:📍\s*(?:My location|Location)?\s*)?(https?:\/\/[^\s]+)/i);
+        if(locationMatch && /maps\.google\.com|google\.com\/maps/i.test(locationMatch[1])){
+            const label = text.replace(locationMatch[1], "").trim() || "📍 Location";
+            html += '<div class="location-message"><div>' + escapeHtml(label) + '</div><a href="' + escapeAttribute(locationMatch[1]) + '" target="_blank" rel="noopener">📍 Open in Maps</a></div>';
+        }else if(selectedGroup && message.sender_name){
+            html += '<div style="font-size:11px;font-weight:700;color:#128c7e;margin-bottom:3px">' + escapeHtml(message.sender_name) + '</div>' + escapeHtml(text);
+        }else{
+            html += escapeHtml(text);
+        }
     }
 
 
@@ -6579,7 +6604,7 @@ async function startGroupCall(mode){
         groupCallId=crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random();
         groupCallMode=mode;
         socket.emit("group-call-start",{group_id:selectedGroup.id,call_id:groupCallId,mode});
-        const constraints={audio:true,video:mode==="video"};
+        const constraints={audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1},video:mode==="video"};
         localStream=await navigator.mediaDevices.getUserMedia(constraints);
         document.getElementById("callScreen").classList.add("show");
         document.getElementById("callInfo").textContent="Group "+(mode==="video"?"video":"audio")+" call: "+selectedGroup.name;
@@ -6587,7 +6612,7 @@ async function startGroupCall(mode){
             if(Number(memberId)===Number(me.id)) continue;
             const pc=new RTCPeerConnection(iceServers);
             groupPeers[memberId]=pc;
-            localStream.getTracks().forEach(track=>pc.addTrack(track,localStream));
+            localStream.getTracks().forEach(function(track){ const sender=pc.addTrack(track,localStream); prioritizeAudioSender(sender); });
             pc.onicecandidate=e=>{if(e.candidate) socket.emit("group-call-ice",{group_id:selectedGroup.id,call_id:groupCallId,to:memberId,candidate:e.candidate});};
             pc.ontrack=e=>attachGroupRemote(memberId,e.streams[0]);
             const offer=await pc.createOffer(); await pc.setLocalDescription(offer);
@@ -6709,7 +6734,7 @@ async function startCall(
                 .getUserMedia({
 
                     audio:
-                        true,
+                        {echoCancellation:true, noiseSuppression:true, autoGainControl:true, channelCount:1},
 
                     video:
                         mode ===
@@ -6757,11 +6782,8 @@ async function startCall(
             .forEach(
                 function(track){
 
-                    peerConnection
-                        .addTrack(
-                            track,
-                            localStream
-                        );
+                    const sender = peerConnection.addTrack(track, localStream);
+                    prioritizeAudioSender(sender);
 
                 }
             );
@@ -6837,12 +6859,34 @@ async function flushPendingIceCandidates(){
    PEER CONNECTION
 ===================================================== */
 
+function prioritizeAudioSender(sender){
+    if(!sender || !sender.track || sender.track.kind !== "audio") return;
+    try{
+        const p=sender.getParameters();
+        p.encodings=p.encodings&&p.encodings.length?p.encodings:[{}];
+        p.encodings[0].maxBitrate=64000;
+        sender.setParameters(p).catch(function(){});
+    }catch(e){}
+}
+
 function createPeerConnection(){
 
     peerConnection =
         new RTCPeerConnection(
             iceServers
         );
+
+    // Keep audio prioritized when bandwidth becomes constrained.
+    peerConnection.getSenders?.().forEach(function(sender){
+        if(sender.track && sender.track.kind === "audio"){
+            try{
+                const p = sender.getParameters();
+                p.encodings = p.encodings && p.encodings.length ? p.encodings : [{}];
+                p.encodings[0].maxBitrate = 64000;
+                sender.setParameters(p).catch(function(){});
+            }catch(e){}
+        }
+    });
 
 
     peerConnection.onicecandidate =
@@ -7274,7 +7318,7 @@ async function answerCall(
                 .getUserMedia({
 
                     audio:
-                        true,
+                        {echoCancellation:true, noiseSuppression:true, autoGainControl:true, channelCount:1},
 
                     video:
                         currentCallMode ===
@@ -7311,11 +7355,8 @@ async function answerCall(
             .forEach(
                 function(track){
 
-                    peerConnection
-                        .addTrack(
-                            track,
-                            localStream
-                        );
+                    const sender = peerConnection.addTrack(track, localStream);
+                    prioritizeAudioSender(sender);
 
                 }
             );
@@ -7634,7 +7675,7 @@ function toggleCamera(){
 async function acceptGroupInvite(data){
     groupCallId=data.call_id; groupCallMode=data.mode;
     try{
-        localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:data.mode==="video"});
+        localStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1},video:data.mode==="video"});
         document.getElementById("callScreen").classList.add("show");
         document.getElementById("callInfo").textContent="Group call";
     }catch(e){alert("Camera/Microphone permission required.");}

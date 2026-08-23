@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const session = require("express-session");
@@ -7,6 +7,7 @@ const path = require("path");
 const fs = require("fs");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
+const nodemailer = require("nodemailer");
 
 const app = express();
 const server = http.createServer(app);
@@ -30,12 +31,16 @@ function emptyDB() {
     return {
         users: [],
         messages: [],
+        groups: [],
+        group_messages: [],
         reports: [],
         statuses: [],
         status_views: [],
         seq: {
             users: 0,
             messages: 0,
+            groups: 0,
+            group_messages: 0,
             reports: 0,
             statuses: 0,
             status_views: 0
@@ -61,6 +66,9 @@ function loadDB() {
             ? data.messages
             : [];
 
+        data.groups = Array.isArray(data.groups) ? data.groups : [];
+        data.group_messages = Array.isArray(data.group_messages) ? data.group_messages : [];
+
         data.reports = Array.isArray(data.reports)
             ? data.reports
             : [];
@@ -77,6 +85,8 @@ function loadDB() {
 
         data.seq.users = Number(data.seq.users || 0);
         data.seq.messages = Number(data.seq.messages || 0);
+        data.seq.groups = Number(data.seq.groups || 0);
+        data.seq.group_messages = Number(data.seq.group_messages || 0);
         data.seq.reports = Number(data.seq.reports || 0);
         data.seq.statuses = Number(data.seq.statuses || 0);
         data.seq.status_views =
@@ -114,6 +124,7 @@ user.contacts =
 }
 
 let db = loadDB();
+const passwordResetOtps = new Map();
 
 function saveDB() {
     try {
@@ -877,6 +888,87 @@ app.post(
 );
 
 /* =====================================================
+   PASSWORD RESET VIA EMAIL OTP
+===================================================== */
+
+async function sendPasswordResetOtp(email, otp) {
+    const user = String(process.env.GMAIL_USER || "").trim();
+    const pass = String(process.env.GMAIL_APP_PASSWORD || "").trim();
+    if (!user || !pass) throw new Error("Gmail SMTP is not configured on the server.");
+
+    const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: { user, pass }
+    });
+
+    await transporter.sendMail({
+        from: user,
+        to: email,
+        subject: "HeyYou password reset OTP",
+        text: `Your HeyYou password reset OTP is ${otp}. It expires in 10 minutes.`
+    });
+}
+
+app.post("/api/password-reset/request", async (req, res) => {
+    try {
+        const email = String(req.body?.email || "").trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({error:"Enter a valid Gmail/email address."});
+        }
+        const user = db.users.find(u => String(u.email || "").toLowerCase() === email);
+        if (!user) return res.status(404).json({error:"No HeyYou account is registered with this email."});
+
+        const otp = String(crypto.randomInt(100000, 1000000));
+        passwordResetOtps.set(email, {otp, expires:Date.now()+10*60*1000, attempts:0});
+        await sendPasswordResetOtp(email, otp);
+        res.json({ok:true, message:"OTP sent to your email."});
+    } catch(error) {
+        console.log("PASSWORD RESET OTP ERROR:", error.message);
+        res.status(500).json({error:"Could not send OTP. Check Gmail SMTP settings on Render."});
+    }
+});
+
+app.post("/api/password-reset/verify", (req, res) => {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const otp = String(req.body?.otp || "").trim();
+    const record = passwordResetOtps.get(email);
+    if (!record || Date.now() > record.expires) {
+        passwordResetOtps.delete(email);
+        return res.status(400).json({error:"OTP expired. Request a new OTP."});
+    }
+    if (record.attempts >= 5) {
+        passwordResetOtps.delete(email);
+        return res.status(429).json({error:"Too many incorrect attempts. Request a new OTP."});
+    }
+    if (record.otp !== otp) {
+        record.attempts += 1;
+        return res.status(400).json({error:"Invalid OTP."});
+    }
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    record.resetToken = resetToken;
+    record.verifiedUntil = Date.now()+10*60*1000;
+    passwordResetOtps.set(email, record);
+    res.json({ok:true, resetToken});
+});
+
+app.post("/api/password-reset/complete", (req, res) => {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const token = String(req.body?.resetToken || "").trim();
+    const password = String(req.body?.password || "");
+    const record = passwordResetOtps.get(email);
+    if (!record || record.resetToken !== token || Date.now() > (record.verifiedUntil || 0)) {
+        return res.status(400).json({error:"Password reset session expired. Verify the OTP again."});
+    }
+    if (password.length < 6) return res.status(400).json({error:"Password must be at least 6 characters."});
+    const user = db.users.find(u => String(u.email || "").toLowerCase() === email);
+    if (!user) return res.status(404).json({error:"User not found."});
+    user.password = bcrypt.hashSync(password, 10);
+    passwordResetOtps.delete(email);
+    saveDB();
+    res.json({ok:true, message:"Password reset successfully."});
+});
+
+/* =====================================================
    LOGIN
 ===================================================== */
 
@@ -1029,6 +1121,23 @@ app.get(
    CONTACTS
 ===================================================== */
 
+app.post("/api/contacts/sync", requireAuth, (req, res) => {
+    const user = getCurrentUser(req);
+    if (!user) return res.status(404).json({error:"User not found"});
+
+    const incoming = Array.isArray(req.body?.phones) ? req.body.phones : [];
+    const normalized = new Set(incoming.map(normalizePhone).filter(isValidPhone));
+    const matched = db.users.filter(u =>
+        Number(u.id) !== Number(user.id) &&
+        u.phone &&
+        normalized.has(normalizePhone(u.phone))
+    );
+
+    user.contacts = [...new Set(matched.map(u => Number(u.id)))];
+    saveDB();
+    res.json({ok:true, contacts:matched.map(publicUser)});
+});
+
 app.get(
     "/api/contacts",
     requireAuth,
@@ -1046,17 +1155,12 @@ app.get(
                 ? user.contacts
                 : [];
 
-        const contacts =
-            user.contacts
-                .map(id =>
-                    db.users.find(
-                        u =>
-                            Number(u.id) ===
-                            Number(id)
-                    )
-                )
-                .filter(Boolean)
-                .map(publicUser);
+        const q = String(req.query.q || "").toLowerCase().trim();
+        const contacts = user.contacts
+            .map(id => db.users.find(u => Number(u.id) === Number(id)))
+            .filter(Boolean)
+            .filter(contact => !q || String(contact.name || "").toLowerCase().includes(q) || String(contact.email || "").toLowerCase().includes(q) || String(contact.phone || "").includes(q))
+            .map(publicUser);
 
         res.json(contacts);
     }
@@ -1208,6 +1312,100 @@ app.get(
         res.json(users);
     }
 );
+
+
+/* =====================================================
+   GROUP CHAT
+===================================================== */
+
+function publicGroup(group) {
+    if (!group) return null;
+    return {
+        id: Number(group.id),
+        name: String(group.name || ""),
+        owner_id: Number(group.owner_id),
+        members: Array.isArray(group.members) ? group.members.map(Number) : [],
+        created_at: group.created_at,
+        created_by_name: group.created_by_name || ""
+    };
+}
+
+function groupForUser(group, userId) {
+    return group && Array.isArray(group.members) &&
+        group.members.some(id => Number(id) === Number(userId));
+}
+
+app.get("/api/groups", requireAuth, (req, res) => {
+    const userId = Number(req.session.user.id);
+    const groups = (db.groups || [])
+        .filter(g => groupForUser(g, userId))
+        .map(publicGroup);
+    res.json(groups);
+});
+
+app.post("/api/groups", requireAuth, (req, res) => {
+    const user = getCurrentUser(req);
+    const name = String(req.body?.name || "").trim();
+    let members = Array.isArray(req.body?.members) ? req.body.members.map(Number).filter(Boolean) : [];
+
+    if (!user) return res.status(401).json({error:"Login required"});
+    if (!name) return res.status(400).json({error:"Group name is required"});
+
+    members = [...new Set(members)].filter(id => id !== Number(user.id));
+    members = members.filter(id => db.users.some(u => Number(u.id) === id));
+    if (!members.length) return res.status(400).json({error:"Select at least one contact"});
+
+    // Only the user's existing saved contacts can be added.
+    const saved = new Set((user.contacts || []).map(Number));
+    members = members.filter(id => saved.has(id));
+    if (!members.length) return res.status(400).json({error:"Select contacts saved in your HeyYou contacts"});
+
+    const group = {
+        id: nextId("groups"),
+        name,
+        owner_id: Number(user.id),
+        members: [Number(user.id), ...members],
+        created_by_name: user.name || "",
+        created_at: new Date().toISOString()
+    };
+    db.groups.push(group);
+    saveDB();
+
+    const result = publicGroup(group);
+    for (const memberId of group.members) {
+        for (const sid of socketsFor(memberId)) io.to(sid).emit("group-created", result);
+    }
+    res.json({ok:true, group:result});
+});
+
+app.post("/api/groups/:id/members", requireAuth, (req, res) => {
+    const user = getCurrentUser(req);
+    const group = (db.groups || []).find(g => Number(g.id) === Number(req.params.id));
+    if (!user || !group) return res.status(404).json({error:"Group not found"});
+    if (Number(group.owner_id) !== Number(user.id)) return res.status(403).json({error:"Only the group owner can add members"});
+
+    const saved = new Set((user.contacts || []).map(Number));
+    let members = Array.isArray(req.body?.members) ? req.body.members.map(Number).filter(Boolean) : [];
+    members = [...new Set(members)].filter(id => id !== Number(user.id) && saved.has(id));
+    members = members.filter(id => db.users.some(u => Number(u.id) === id));
+    if (!members.length) return res.status(400).json({error:"Select saved contacts to add"});
+
+    group.members = [...new Set([...(group.members || []).map(Number), ...members])];
+    saveDB();
+    const result = publicGroup(group);
+    for (const memberId of group.members) {
+        for (const sid of socketsFor(memberId)) io.to(sid).emit("group-updated", result);
+    }
+    res.json({ok:true, group:result});
+});
+
+app.get("/api/groups/:id/messages", requireAuth, (req, res) => {
+    const userId = Number(req.session.user.id);
+    const group = (db.groups || []).find(g => Number(g.id) === Number(req.params.id));
+    if (!group || !groupForUser(group, userId)) return res.status(404).json({error:"Group not found"});
+    const messages = (db.group_messages || []).filter(m => Number(m.group_id) === Number(group.id)).slice(-500);
+    res.json(messages);
+});
 
 /* =====================================================
    MESSAGES
@@ -3709,6 +3907,36 @@ io.on(
                 }
             }
         );
+
+        /* ---------------------------------------------
+           GROUP MESSAGE
+        --------------------------------------------- */
+
+        socket.on("group-message", data => {
+            if (!socket.userId) return;
+            const groupId = Number(data?.group_id);
+            const text = String(data?.text || "").trim();
+            const group = (db.groups || []).find(g => Number(g.id) === groupId);
+            if (!group || !groupForUser(group, socket.userId) || !text) return;
+
+            const sender = db.users.find(u => Number(u.id) === Number(socket.userId));
+            const message = {
+                id: nextId("group_messages"),
+                group_id: groupId,
+                sender_id: Number(socket.userId),
+                sender_name: sender?.name || "",
+                text,
+                created_at: new Date().toISOString()
+            };
+            db.group_messages.push(message);
+            saveDB();
+
+            for (const memberId of group.members) {
+                for (const sid of socketsFor(memberId)) {
+                    io.to(sid).emit("group-message", message);
+                }
+            }
+        });
 
         /* ---------------------------------------------
            CALL USER

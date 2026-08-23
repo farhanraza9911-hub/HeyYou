@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -105,12 +105,12 @@ button:hover {
 
         <input
     type="email"
-    id="email"
+    id="email" required
     placeholder="Gmail / Email (optional)"
 >
 <input
     type="tel"
-    id="phone"
+    id="phone" required
     placeholder="Mobile Number (e.g. +923001234567)"
 >
 
@@ -172,10 +172,8 @@ const phone =
             document.getElementById("message");
 
         message.style.color = "#d00";
-if (!email && !phone) {
-    message.innerText =
-        "Please enter Gmail/email or mobile number.";
-
+if (!email || !phone) {
+    message.innerText = "Name, email, mobile number and password are all required.";
     return;
 }
 
