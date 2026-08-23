@@ -4,7 +4,7 @@
       "id": 1,
       "name": "HeyYou Admin",
       "email": "farhanraza9911@gmail.com",
-      "password": "$2b$10$K/mjaIc/UIn4KeaNmVoqgOyhznLSfOJy6o74XjZIN.Wq2bpmFh8SG",
+      "password": "$2b$10$kgM97Z9PvJ9B9aBS4dTUXOEa07d1LVgnzBuuhcexGGouB5m7aehkO",
       "avatar": "",
       "bio": "",
       "role": "admin",
@@ -88,7 +88,7 @@
       "email": "farhanraza1234567@gmail.com",
       "phone": "+923087321258",
       "password": "$2b$10$K9KCvQQ42ujozur.1w2Szuw2r.euYum/yCxNgYi1BPalhjVBfWjyi",
-      "avatar": "",
+      "avatar": "/uploads/1787490974956-c8c06509c563b303.png",
       "bio": "",
       "role": "user",
       "status": "offline",
@@ -337,44 +337,58 @@
       "file_type": "",
       "sender_name": "ali",
       "created_at": "2026-08-22T12:15:41.014Z"
-    },
-    {
-      "id": 19,
-      "sender_id": 4,
-      "receiver_id": 3,
-      "text": "📍 My location\nhttps://www.google.com/maps?q=24.7011705,46.7420726",
-      "file_url": "",
-      "file_name": "",
-      "file_type": "",
-      "sender_name": "ahmed",
-      "created_at": "2026-08-23T11:48:57.910Z"
     }
   ],
   "reports": [],
   "seq": {
     "users": 5,
-    "messages": 19,
+    "messages": 18,
     "reports": 0,
-    "statuses": 29,
-    "status_views": 9,
+    "statuses": 30,
+    "status_views": 10,
     "groups": 1,
     "group_messages": 0
   },
-  "statuses": [],
-  "status_views": [],
+  "statuses": [
+    {
+      "id": 30,
+      "user_id": 4,
+      "user_name": "ahmed",
+      "user_avatar": "/uploads/1787490974956-c8c06509c563b303.png",
+      "type": "video",
+      "text": "",
+      "file_url": "/uploads/1787493623812-0695deaae1fddfa9.mp4",
+      "file_name": "WhatsApp Video 2026-08-14 at 18.16.16.mp4",
+      "file_type": "video/mp4",
+      "media_url": "/uploads/1787493623812-0695deaae1fddfa9.mp4",
+      "media_name": "WhatsApp Video 2026-08-14 at 18.16.16.mp4",
+      "media_type": "video/mp4",
+      "created_at": "2026-08-23T14:00:23.878Z",
+      "expires_at": "2026-08-24T14:00:23.878Z",
+      "views": 1
+    }
+  ],
+  "status_views": [
+    {
+      "id": 10,
+      "status_id": 30,
+      "viewer_id": 3,
+      "created_at": "2026-08-23T14:00:43.987Z"
+    }
+  ],
   "groups": [
     {
       "id": 1,
       "name": "test",
-      "owner_id": 3,
+      "owner_id": 4,
       "members": [
-        3,
         4,
+        3,
         5,
         2
       ],
-      "created_by_name": "ali",
-      "created_at": "2026-08-23T11:46:35.557Z"
+      "created_by_name": "ahmed",
+      "created_at": "2026-08-23T13:16:41.265Z"
     }
   ],
   "group_messages": []

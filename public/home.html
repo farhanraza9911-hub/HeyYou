@@ -321,8 +321,9 @@ async function syncPhoneContacts(){
         });
         const data = await response.json();
         if(!response.ok){ alert(data.error || "Could not sync contacts."); return; }
+        if(me && Array.isArray(data.contactIds)) me.contacts = data.contactIds;
         await loadUsers();
-        alert((data.contacts || []).length + " HeyYou contacts synced.");
+        showToast((data.contacts || []).length + " HeyYou contact(s) added from phone book");
     }catch(error){
         if(error && error.name === "AbortError") return;
         console.error("Phone contacts sync:", error);
@@ -1831,9 +1832,10 @@ body.chat-open .mobile-back{
 .group-row button{border:0;background:transparent;font-size:20px;padding:6px}.group-contact span{flex:1}
 
 @media (max-width: 700px){
-  body.chat-open .composer{position:sticky !important;bottom:0 !important;margin-bottom:env(safe-area-inset-bottom,0);background:#fff;}
-  body.chat-open .messages{padding-bottom:90px !important;overflow-y:auto;}
-  body.chat-open .chat{min-height:0;}
+  body.chat-open .chat{display:flex !important;height:100%;min-height:0;overflow:hidden;}
+  body.chat-open .messages{flex:1 1 auto;min-height:0;overflow-y:auto;padding-bottom:12px !important;}
+  body.chat-open .composer{display:flex !important;position:sticky !important;bottom:0 !important;z-index:90;width:100%;box-sizing:border-box;margin:0;background:#fff;padding-bottom:calc(10px + env(safe-area-inset-bottom,0));}
+  body.chat-open .composer input[type=text]{min-width:0;}
 }
 </style>
 
@@ -1888,7 +1890,7 @@ body.chat-open .mobile-back{
                 <input
                     id="search"
                     type="text"
-                    placeholder="Search contacts..."
+                    placeholder="Search saved contacts..."
                     autocomplete="off"
                     oninput="loadUsers()"
                 >
@@ -1896,7 +1898,7 @@ body.chat-open .mobile-back{
 
             <div class="contacts-title" id="contactsTitle" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
                 <span>Contacts</span>
-                <button type="button" onclick="syncPhoneContacts()" style="border:0;background:#128c7e;color:#fff;border-radius:7px;padding:5px 8px;font-size:12px;cursor:pointer">Sync Phone</button>
+                <button type="button" onclick="syncPhoneContacts()" style="border:0;background:#128c7e;color:#fff;border-radius:7px;padding:7px 10px;font-size:12px;cursor:pointer">📱 Add from Phone Book</button>
             </div>
 
             <div
@@ -2286,6 +2288,7 @@ body.chat-open .mobile-back{
         <button id="speakerCallBtn" class="call-control-button" type="button" onclick="toggleSpeaker()" title="Speaker on" aria-label="Speaker on">🔊</button>
 
         <button id="cameraCallBtn" class="call-control-button" type="button" onclick="toggleCamera()" title="Camera on" aria-label="Camera on">📷</button>
+        <button id="switchCameraBtn" class="call-control-button" type="button" onclick="switchCamera()" title="Switch camera" aria-label="Switch camera" style="display:none">🔄</button>
 
         <button class="end-call" type="button" onclick="endCall()" title="End call" aria-label="End call">📞</button>
 
@@ -3836,13 +3839,22 @@ async function showCreateGroup(){
     const panel=document.getElementById("createGroupPanel");
     panel.style.display="block";
     document.getElementById("groupNameInput").value="";
-    const r=await fetch("/api/contacts"); const users=r.ok?await r.json():[];
-    document.getElementById("groupContactsList").innerHTML=users.filter(u=>Number(u.id)!==Number(me.id)).map(u=>`<label class="group-contact"><input type="checkbox" value="${Number(u.id)}"><span>${escapeHtml(u.name||"User")}</span></label>`).join("");
+    const list=document.getElementById("groupContactsList");
+    list.innerHTML='<div style="padding:10px;color:#777">Loading saved contacts...</div>';
+    try{
+        const r=await fetch("/api/contacts",{cache:"no-store"});
+        const users=r.ok?await r.json():[];
+        const contacts=Array.isArray(users)?users.filter(u=>Number(u.id)!==Number(me.id)):[];
+        list.innerHTML=contacts.length?contacts.map(u=>`<label class="group-contact"><input type="checkbox" value="${Number(u.id)}"><span>${escapeHtml(u.name||"User")}</span></label>`).join(""):'<div style="padding:10px;color:#777">No saved contacts. Add contacts first.</div>';
+    }catch(e){
+        console.error("Group contacts:",e);
+        list.innerHTML='<div style="padding:10px;color:#777">Could not load contacts.</div>';
+    }
 }
 async function showAddGroupMembers(groupId){
     const group=myGroups.find(g=>Number(g.id)===Number(groupId));
     if(!group || Number(group.owner_id)!==Number(me.id)) return;
-    const r=await fetch("/api/contacts"); const users=r.ok?await r.json():[];
+    const r=await fetch("/api/contacts",{cache:"no-store"}); const users=r.ok?await r.json():[];
     const existing=new Set(group.members.map(Number));
     const available=users.filter(u=>!existing.has(Number(u.id)));
     document.getElementById("createGroupPanel").style.display="none";
@@ -4028,8 +4040,9 @@ async function syncPhoneContacts(){
         });
         const data = await response.json();
         if(!response.ok){ alert(data.error || "Could not sync contacts."); return; }
+        if(me && Array.isArray(data.contactIds)) me.contacts = data.contactIds;
         await loadUsers();
-        alert((data.contacts || []).length + " HeyYou contacts synced.");
+        showToast((data.contacts || []).length + " HeyYou contact(s) added from phone book");
     }catch(error){
         if(error && error.name === "AbortError") return;
         console.error("Phone contacts sync:", error);
@@ -4072,9 +4085,9 @@ async function loadUsers(){
             (appSettings.blockedUsers || [])
                 .map(Number);
 
-        /* Only saved HeyYou contacts are ever shown. Search filters those contacts. */
-        const endpoint =
-            "/api/contacts?q=" + encodeURIComponent(query);
+        /* The home screen always contains saved contacts only.
+         * Phone-book importing is handled by syncPhoneContacts(). */
+        const endpoint = "/api/contacts" + (query ? "?q=" + encodeURIComponent(query) : "");
 
         const response =
             await fetch(endpoint);
@@ -4098,7 +4111,7 @@ async function loadUsers(){
                 !blocked.includes(Number(user.id));
         });
 
-        title.querySelector("span").textContent = query ? "Contacts" : "Contacts";
+        title.querySelector("span").textContent = query ? "Saved Contacts" : "My Contacts";
         list.classList.remove("search-mode");
 
         list.innerHTML = "";
@@ -4111,61 +4124,31 @@ async function loadUsers(){
             return;
         }
 
+        const savedIds = new Set((me.contacts || []).map(Number));
+
         users.forEach(function(user){
-
-            const div =
-                document.createElement("div");
-
+            const div = document.createElement("div");
             div.className = "user";
-
-            if(
-                selectedUser &&
-                Number(selectedUser.id) === Number(user.id)
-            ){
-                div.classList.add("active");
-            }
-
-            const isSaved =
-                !query || savedIds.has(Number(user.id));
-
+            div.setAttribute("role", "button");
+            div.setAttribute("tabindex", "0");
             div.innerHTML =
                 '<div class="user-main">' +
-                    '<div class="avatar">' +
-                        avatarMarkup(user) +
-                    '</div>' +
+                    '<div class="avatar">' + avatarMarkup(user) + '</div>' +
                     '<div class="user-info">' +
-                        '<div class="user-name">' +
-                            escapeHtml(user.name || "Unknown") +
-                        '</div>' +
-                        '<div class="status">' +
-                            escapeHtml(
-                                appSettings.onlineStatus
-                                    ? (user.status || "offline")
-                                    : "offline"
-                            ) +
-                        '</div>' +
+                        '<div class="user-name">' + escapeHtml(user.name || "Unknown") + '</div>' +
+                        '<div class="status">' + escapeHtml(appSettings.onlineStatus ? (user.status || "offline") : "offline") + '</div>' +
                     '</div>' +
                 '</div>' +
-                (
-                    isSaved
-                        ? '<div class="user-arrow">›</div>'
-                        : '<button class="add-contact-btn" type="button">Add Contact</button>'
-                );
+                '<div class="user-arrow">›</div>';
 
-            if(isSaved){
-                div.onclick = function(){
-                    selectUser(user);
-                };
-            }else{
-                const addButton =
-                    div.querySelector(".add-contact-btn");
-
-                addButton.onclick = function(event){
-                    event.stopPropagation();
-                    addContact(user, addButton);
-                };
-            }
-
+            const open = function(event){
+                if(event) event.preventDefault();
+                selectUser(user);
+            };
+            div.addEventListener("click", open);
+            div.addEventListener("keydown", function(event){
+                if(event.key === "Enter" || event.key === " "){ open(event); }
+            });
             list.appendChild(div);
         });
 
@@ -4369,7 +4352,16 @@ async function selectUser(user){
     document.body.classList.add("chat-open");
     document.body.classList.add("mobile-chat-open");
 
+    const composer = document.querySelector(".composer");
+    if(composer) composer.style.display = "flex";
+
     await loadMessages();
+
+    const messageInput = document.getElementById("messageInput");
+    if(messageInput) {
+        messageInput.disabled = false;
+        setTimeout(function(){ messageInput.focus({preventScroll:true}); }, 0);
+    }
 
     loadUsers();
 
@@ -7619,6 +7611,12 @@ function updateCallModeUI(){
         }
     }
 
+    const switchButton = document.getElementById("switchCameraBtn");
+    if(switchButton){
+        const hasVideo = !!(localStream && localStream.getVideoTracks().length);
+        switchButton.style.display = currentCallMode === "video" && hasVideo ? "inline-flex" : "none";
+    }
+
     if(muteButton){
         const track = localStream && localStream.getAudioTracks()[0];
         const enabled = !track || track.enabled;
@@ -7670,6 +7668,34 @@ function toggleCamera(){
     if(!track){ showToast("Camera is not available for this call"); return; }
     track.enabled = !track.enabled;
     updateCallModeUI();
+}
+
+async function switchCamera(){
+    if(currentCallMode !== "video" || !localStream) return;
+    const oldTrack = localStream.getVideoTracks()[0];
+    if(!oldTrack){ showToast("Camera is not available for this call"); return; }
+    const settings = oldTrack.getSettings ? oldTrack.getSettings() : {};
+    const currentFacing = settings.facingMode === "environment" ? "environment" : "user";
+    const nextFacing = currentFacing === "user" ? "environment" : "user";
+    try{
+        const newStream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {facingMode:{ideal:nextFacing}}
+        });
+        const newTrack = newStream.getVideoTracks()[0];
+        if(!newTrack) throw new Error("No camera track");
+        const sender = peerConnection && peerConnection.getSenders().find(s => s.track && s.track.kind === "video");
+        if(sender){ await sender.replaceTrack(newTrack); }
+        localStream.removeTrack(oldTrack);
+        oldTrack.stop();
+        localStream.addTrack(newTrack);
+        const myVideo = document.getElementById("myVideo");
+        if(myVideo) myVideo.srcObject = localStream;
+        updateCallModeUI();
+    }catch(error){
+        console.warn("Switch camera:", error);
+        showToast("Unable to switch camera on this device");
+    }
 }
 
 async function acceptGroupInvite(data){

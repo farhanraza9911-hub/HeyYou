@@ -108,11 +108,21 @@ button:hover {
     id="email" required
     placeholder="Gmail / Email (optional)"
 >
-<input
-    type="tel"
-    id="phone" required
-    placeholder="Mobile Number (e.g. +923001234567)"
->
+<div style="display:flex;gap:8px;margin-bottom:15px">
+    <select id="countryCode" required style="width:115px;padding:13px 8px;border:1px solid #ddd;border-radius:8px;font-size:15px;background:#fff">
+        <option value="+92" selected>🇵🇰 +92</option>
+        <option value="+966">🇸🇦 +966</option>
+        <option value="+971">🇦🇪 +971</option>
+        <option value="+974">🇶🇦 +974</option>
+        <option value="+965">🇰🇼 +965</option>
+        <option value="+973">🇧🇭 +973</option>
+        <option value="+968">🇴🇲 +968</option>
+        <option value="+91">🇮🇳 +91</option>
+        <option value="+1">🇺🇸 +1</option>
+        <option value="+44">🇬🇧 +44</option>
+    </select>
+    <input type="tel" id="phone" required placeholder="Mobile Number" style="flex:1;margin-bottom:0">
+</div>
 
         <input
             type="password"
@@ -156,8 +166,10 @@ document.getElementById("registerForm").addEventListener(
         const name =
             document.getElementById("name").value.trim();
 
-const phone =
-    document.getElementById("phone").value.trim();
+const countryCode = document.getElementById("countryCode").value;
+const rawPhone = document.getElementById("phone").value.trim();
+const phoneDigits = rawPhone.replace(/\D/g, "");
+const phone = countryCode + phoneDigits;
 
         const email =
             document.getElementById("email").value.trim();

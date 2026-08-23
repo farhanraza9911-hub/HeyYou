@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
 
 const UPLOADS = path.join(ROOT, "uploads");
-const DATA = path.join(ROOT, "data");
+const DATA = process.env.HEYYOU_DATA_DIR ? path.resolve(process.env.HEYYOU_DATA_DIR) : path.join(ROOT, "data");
 const DB_FILE = path.join(DATA, "heyyou.json");
 
 fs.mkdirSync(UPLOADS, { recursive: true });
@@ -681,6 +681,21 @@ function isValidPhone(phone) {
     );
 }
 
+/* Match phone-book numbers even when one side is stored with a country
+ * code and the other side is stored in local format (for example
+ * +9665xxxxxxxx vs 05xxxxxxxx). We still require a meaningful 9-digit
+ * suffix so unrelated short values are not matched. */
+function phonesMatch(a, b) {
+    const da = normalizePhone(a).replace(/\D/g, "");
+    const db = normalizePhone(b).replace(/\D/g, "");
+    if (!da || !db) return false;
+    if (da === db) return true;
+    if (da.length >= 9 && db.length >= 9) {
+        return da.slice(-9) === db.slice(-9);
+    }
+    return false;
+}
+
 function isBlocked(
     userA,
     userB
@@ -893,7 +908,7 @@ app.post(
 
 async function sendPasswordResetOtp(email, otp) {
     const user = String(process.env.GMAIL_USER || "").trim();
-    const pass = String(process.env.GMAIL_APP_PASSWORD || "").trim();
+    const pass = String(process.env.GMAIL_APP_PASSWORD || "").replace(/\s/g, "");
     if (!user || !pass) throw new Error("Gmail SMTP is not configured on the server.");
 
     const transporter = nodemailer.createTransport({
@@ -1126,16 +1141,21 @@ app.post("/api/contacts/sync", requireAuth, (req, res) => {
     if (!user) return res.status(404).json({error:"User not found"});
 
     const incoming = Array.isArray(req.body?.phones) ? req.body.phones : [];
-    const normalized = new Set(incoming.map(normalizePhone).filter(isValidPhone));
+    const phoneBook = incoming.map(normalizePhone).filter(isValidPhone);
     const matched = db.users.filter(u =>
         Number(u.id) !== Number(user.id) &&
         u.phone &&
-        normalized.has(normalizePhone(u.phone))
+        phoneBook.some(phone => phonesMatch(phone, u.phone))
     );
 
-    user.contacts = [...new Set(matched.map(u => Number(u.id)))];
+    const existing = Array.isArray(user.contacts) ? user.contacts.map(Number) : [];
+    user.contacts = [...new Set([...existing, ...matched.map(u => Number(u.id))])];
     saveDB();
-    res.json({ok:true, contacts:matched.map(publicUser)});
+    res.json({
+        ok: true,
+        contacts: matched.map(publicUser),
+        contactIds: user.contacts.map(Number)
+    });
 });
 
 app.get(
@@ -1336,6 +1356,7 @@ function groupForUser(group, userId) {
 }
 
 app.get("/api/groups", requireAuth, (req, res) => {
+    res.set("Cache-Control", "no-store");
     const userId = Number(req.session.user.id);
     const groups = (db.groups || [])
         .filter(g => groupForUser(g, userId))
@@ -1344,6 +1365,7 @@ app.get("/api/groups", requireAuth, (req, res) => {
 });
 
 app.post("/api/groups", requireAuth, (req, res) => {
+    res.set("Cache-Control", "no-store");
     const user = getCurrentUser(req);
     const name = String(req.body?.name || "").trim();
     let members = Array.isArray(req.body?.members) ? req.body.members.map(Number).filter(Boolean) : [];
@@ -1400,6 +1422,7 @@ app.post("/api/groups/:id/members", requireAuth, (req, res) => {
 });
 
 app.get("/api/groups/:id/messages", requireAuth, (req, res) => {
+    res.set("Cache-Control", "no-store");
     const userId = Number(req.session.user.id);
     const group = (db.groups || []).find(g => Number(g.id) === Number(req.params.id));
     if (!group || !groupForUser(group, userId)) return res.status(404).json({error:"Group not found"});
