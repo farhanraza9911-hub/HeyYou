@@ -218,6 +218,7 @@ button:hover {
         id="profileEmail">
         Loading...
     </div>
+<div class="profile-field"><label>Mobile Number</label><span id="profile-mobile"></span></div>
 
 
     <form id="profileForm">
@@ -566,6 +567,54 @@ document.getElementById(
 
 loadProfile();
 
+</script>
+
+
+<script>
+(function () {
+  function getUserObject() {
+    const keys = ['currentUser', 'user', 'profile', 'heyyouUser'];
+    for (const key of keys) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const obj = JSON.parse(raw);
+        if (obj && (obj.mobile || obj.phone || obj.phoneNumber)) return obj;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  async function loadProfileMobile() {
+    const el = document.getElementById('profile-mobile');
+    if (!el) return;
+
+    const cached = getUserObject();
+    const cachedMobile = cached && (cached.mobile || cached.phone || cached.phoneNumber);
+    if (cachedMobile) el.textContent = cachedMobile;
+
+    try {
+      const r = await fetch('/api/me', { credentials: 'include' });
+      if (!r.ok) return;
+      const data = await r.json();
+      const u = data.user || data;
+      const mobile = u.mobile || u.phone || u.phoneNumber || '';
+      if (mobile) {
+        el.textContent = mobile;
+        try {
+          const existing = cached || {};
+          localStorage.setItem('currentUser', JSON.stringify(Object.assign({}, existing, u)));
+        } catch (_) {}
+      }
+    } catch (_) {}
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadProfileMobile);
+  } else {
+    loadProfileMobile();
+  }
+})();
 </script>
 
 </body>

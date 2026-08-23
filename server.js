@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const session = require("express-session");
@@ -934,12 +934,22 @@ app.post("/api/password-reset/request", async (req, res) => {
         if (!user) return res.status(404).json({error:"No HeyYou account is registered with this email."});
 
         const otp = String(crypto.randomInt(100000, 1000000));
-        passwordResetOtps.set(email, {otp, expires:Date.now()+10*60*1000, attempts:0});
+        const record = {otp, expires:Date.now()+10*60*1000, attempts:0};
+        // Only create the reset session after Gmail accepts the message.
+        // This prevents a failed SMTP send from leaving the UI waiting for an OTP.
         await sendPasswordResetOtp(email, otp);
+        passwordResetOtps.set(email, record);
         res.json({ok:true, message:"OTP sent to your email."});
     } catch(error) {
-        console.log("PASSWORD RESET OTP ERROR:", error.message);
-        res.status(500).json({error:"Could not send OTP. Check Gmail SMTP settings on Render."});
+        console.log("PASSWORD RESET OTP ERROR:", error);
+        const detail = String(error && error.message || "");
+        let message = "Could not send OTP. Check Gmail SMTP settings on Render.";
+        if (/Invalid login|Username and Password not accepted|BadCredentials|authentication/i.test(detail)) {
+            message = "Gmail rejected the login. Check GMAIL_USER and GMAIL_APP_PASSWORD on Render.";
+        } else if (/ENOTFOUND|ECONN|ETIMEDOUT|EAI_AGAIN/i.test(detail)) {
+            message = "Gmail connection failed. Please try again in a moment.";
+        }
+        res.status(500).json({error:message});
     }
 });
 

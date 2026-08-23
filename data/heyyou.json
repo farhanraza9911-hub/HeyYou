@@ -4,7 +4,7 @@
       "id": 1,
       "name": "HeyYou Admin",
       "email": "farhanraza9911@gmail.com",
-      "password": "$2b$10$kgM97Z9PvJ9B9aBS4dTUXOEa07d1LVgnzBuuhcexGGouB5m7aehkO",
+      "password": "$2b$10$uvfQw6yoJRhce2PQAxM/NOqjCuO2lB1hBAUf70xRId/DggHiMTy0K",
       "avatar": "",
       "bio": "",
       "role": "admin",
@@ -61,7 +61,7 @@
       "avatar": "/uploads/1786967393357-d3469b4d061b.jpg",
       "bio": "i am a tester",
       "role": "user",
-      "status": "online",
+      "status": "offline",
       "created_at": "2026-08-17T11:20:12.621Z",
       "settings": {
         "theme": "light",
@@ -91,7 +91,7 @@
       "avatar": "/uploads/1787490974956-c8c06509c563b303.png",
       "bio": "",
       "role": "user",
-      "status": "offline",
+      "status": "online",
       "created_at": "2026-08-21T02:00:49.127Z",
       "settings": {
         "theme": "light",

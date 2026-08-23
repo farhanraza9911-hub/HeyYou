@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 
@@ -6,7 +6,7 @@
 
 <meta
     name="viewport"
-    content="width=device-width,initial-scale=1.0"
+    content="width=device-width,initial-scale=1.0,viewport-fit=cover"
 >
 
 <title>HeyYou</title>
@@ -289,6 +289,20 @@ body.dark .contacts-title{
     opacity:.65;
     cursor:default;
 }
+
+
+.contact-menu-wrap{position:relative;flex-shrink:0;margin-left:8px}
+.contact-menu-button{width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:#555;font-size:24px;line-height:1;display:flex;align-items:center;justify-content:center}
+body.dark .contact-menu-button{color:#e9edef}
+.contact-menu-button:active{background:#00000012}
+.contact-menu{display:none;position:absolute;right:0;top:42px;width:230px;background:#fff;color:#222;border:1px solid #ddd;border-radius:12px;padding:12px;box-shadow:0 10px 30px #0003;z-index:200}
+.contact-menu.show{display:block}
+body.dark .contact-menu{background:#202c33;color:#e9edef;border-color:#374045}
+.contact-menu-name{font-weight:700;font-size:15px;margin-bottom:8px}
+.contact-menu-row{font-size:13px;line-height:1.45;padding:7px 0;border-top:1px solid #eee}
+body.dark .contact-menu-row{border-color:#374045}
+.contact-menu-label{display:block;font-size:11px;color:#777;margin-bottom:2px}
+body.dark .contact-menu-label{color:#aebac1}
 
 .mobile-back{
     display:none;
@@ -1759,7 +1773,7 @@ body.chat-open .mobile-back{
 
 @media(max-width:600px){
     .container{
-        height:calc(100vh - 58px);
+        height:calc(100dvh - 58px);
         display:block;
     }
 
@@ -1795,7 +1809,9 @@ body.chat-open .mobile-back{
 
     .bottom-nav{
         width:100%;
-        height:68px;
+        height:calc(68px + env(safe-area-inset-bottom, 0px));
+        min-height:68px;
+        padding-bottom:env(safe-area-inset-bottom, 0px);
     }
 
     .chat{
@@ -1814,9 +1830,11 @@ body.chat-open .mobile-back{
 
     body.chat-open .composer{
         position:relative;
-        bottom:24px;
+        bottom:10px;
         z-index:80;
-        padding-bottom:12px;
+        padding-top:10px;
+        padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px));
+        margin-bottom:env(safe-area-inset-bottom, 0px);
     }
 
     body.chat-open .messages{
@@ -2411,6 +2429,14 @@ body.chat-open .mobile-back{
                     <div
                         class="settings-profile-email"
                         id="settingsEmail"
+                    >
+                        -
+                    </div>
+
+                    <div
+                        class="settings-profile-email"
+                        id="settingsPhone"
+                        style="margin-top:4px;"
                     >
                         -
                     </div>
@@ -3194,6 +3220,14 @@ body.chat-open .mobile-back{
     id="callToast"
 ></div>
 
+
+
+document.addEventListener("click", function(event){
+    if(event.target.closest(".contact-menu-wrap")) return;
+    document.querySelectorAll(".contact-menu.show").forEach(function(menu){
+        menu.classList.remove("show");
+    });
+});
 
 <script src="/socket.io/socket.io.js"></script>
 
@@ -4139,16 +4173,45 @@ async function loadUsers(){
                         '<div class="status">' + escapeHtml(appSettings.onlineStatus ? (user.status || "offline") : "offline") + '</div>' +
                     '</div>' +
                 '</div>' +
-                '<div class="user-arrow">›</div>';
+                '<div class="contact-menu-wrap">' +
+                    '<button class="contact-menu-button" type="button" aria-label="Contact details">⋮</button>' +
+                    '<div class="contact-menu">' +
+                        '<div class="contact-menu-name">' + escapeHtml(user.name || "Unknown") + '</div>' +
+                        '<div class="contact-menu-row"><span class="contact-menu-label">Contact number</span>' +
+                            escapeHtml(user.phone || user.phoneNumber || user.mobile || user.number || "Not available") +
+                        '</div>' +
+                        '<div class="contact-menu-row"><span class="contact-menu-label">About</span>' +
+                            escapeHtml(user.about || user.bio || "No about information") +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
 
             const open = function(event){
                 if(event) event.preventDefault();
                 selectUser(user);
             };
-            div.addEventListener("click", open);
+
+            const menuButton = div.querySelector(".contact-menu-button");
+            const menu = div.querySelector(".contact-menu");
+
+            menuButton.addEventListener("click", function(event){
+                event.preventDefault();
+                event.stopPropagation();
+                document.querySelectorAll(".contact-menu.show").forEach(function(openMenu){
+                    if(openMenu !== menu) openMenu.classList.remove("show");
+                });
+                menu.classList.toggle("show");
+            });
+
+            div.addEventListener("click", function(event){
+                if(event.target.closest(".contact-menu-wrap")) return;
+                open(event);
+            });
+
             div.addEventListener("keydown", function(event){
                 if(event.key === "Enter" || event.key === " "){ open(event); }
             });
+
             list.appendChild(div);
         });
 
@@ -8033,6 +8096,23 @@ function updateSettingsProfile(){
         "settingsEmail"
     ).textContent =
         me.email || "";
+
+    const settingsPhone =
+        document.getElementById("settingsPhone");
+
+    if(settingsPhone){
+
+        const phone =
+            me.phone ||
+            me.mobile ||
+            me.phoneNumber ||
+            "";
+
+        settingsPhone.textContent =
+            phone
+                ? "📱 " + phone
+                : "📱 Mobile number not available";
+    }
 
 
     document.getElementById(
