@@ -6952,34 +6952,9 @@ function prioritizeAudioSender(sender){
 
 function createPeerConnection(){
 
-    /*
-       Audio-only calls can fail when the two phones cannot establish a
-       direct ICE path. Keep the existing ICE servers untouched, but when
-       Cloudflare TURN credentials are actually available, prefer TURN for
-       audio calls. Video calls keep the original ICE policy unchanged.
-    */
-    const hasTurnServer =
-        Array.isArray(iceServers.iceServers) &&
-        iceServers.iceServers.some(function(server){
-            const urls = server && server.urls;
-            const list = Array.isArray(urls) ? urls : [urls];
-            return list.some(function(url){
-                return typeof url === "string" &&
-                    url.toLowerCase().indexOf("turn:") === 0;
-            });
-        });
-
-    const rtcOptions = {
-        ...iceServers
-    };
-
-    if(currentCallMode === "audio" && hasTurnServer){
-        rtcOptions.iceTransportPolicy = "relay";
-    }
-
     peerConnection =
         new RTCPeerConnection(
-            rtcOptions
+            iceServers
         );
 
     // Keep audio prioritized when bandwidth becomes constrained.
@@ -7060,82 +7035,35 @@ function createPeerConnection(){
     peerConnection.onconnectionstatechange =
         function(){
 
-            if(!peerConnection) return;
+            if(
+                !peerConnection
+            )
+                return;
 
-            const state = peerConnection.connectionState;
 
-            console.log(
-                "HeyYou WebRTC connection:",
-                currentCallMode,
-                state,
-                "ICE:",
-                peerConnection.iceConnectionState,
-                "gathering:",
-                peerConnection.iceGatheringState
-            );
-
-            if(state === "connected"){
+            if(peerConnection.connectionState === "connected"){
                 callConnectedAt = callConnectedAt || Date.now();
                 if(activeCallHistoryEntry) activeCallHistoryEntry.status = "connected";
             }
 
-            if(state === "failed"){
-                console.error(
-                    "HeyYou WebRTC FAILED:",
-                    {
-                        mode: currentCallMode,
-                        ice: peerConnection.iceConnectionState,
-                        gathering: peerConnection.iceGatheringState,
-                        signaling: peerConnection.signalingState,
-                        iceServers: iceServers.iceServers
-                    }
-                );
+            if(
+                [
+                    "failed",
+                    "disconnected"
+                ].includes(
+                    peerConnection
+                        .connectionState
+                )
+            ){
 
                 showToast(
-                    currentCallMode === "audio"
-                        ? "Audio call connection failed. Checking network path..."
-                        : "Call connection failed"
+                    "Call connection " +
+                    peerConnection
+                        .connectionState
                 );
+
             }
 
-            if(state === "disconnected"){
-                showToast(
-                    "Call connection interrupted. Reconnecting..."
-                );
-            }
-        };
-
-    peerConnection.oniceconnectionstatechange =
-        function(){
-            if(!peerConnection) return;
-
-            console.log(
-                "HeyYou WebRTC ICE:",
-                currentCallMode,
-                peerConnection.iceConnectionState
-            );
-
-            if(peerConnection.iceConnectionState === "failed"){
-                console.error(
-                    "HeyYou ICE FAILED:",
-                    {
-                        mode: currentCallMode,
-                        connection: peerConnection.connectionState,
-                        gathering: peerConnection.iceGatheringState,
-                        iceServers: iceServers.iceServers
-                    }
-                );
-            }
-        };
-
-    peerConnection.onicegatheringstatechange =
-        function(){
-            if(peerConnection){
-                console.log(
-                    "HeyYou ICE gathering:",
-                    peerConnection.iceGatheringState
-                );
-            }
         };
 
 }
@@ -7460,7 +7388,6 @@ async function answerCall(
         currentCallMode =
             data.mode ||
             "video";
-        pendingIceCandidates = [];
 
 
 
