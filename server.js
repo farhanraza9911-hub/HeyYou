@@ -1,4 +1,4 @@
-﻿const express = require("express");
+﻿﻿const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const session = require("express-session");
@@ -907,74 +907,56 @@ app.post(
 ===================================================== */
 
 async function sendPasswordResetOtp(email, otp) {
-    const user = String(process.env.GMAIL_USER || "").trim();
-    const pass = String(process.env.GMAIL_APP_PASSWORD || "").replace(/\s/g, "");
+    const apiKey = String(process.env.BREVO_API_KEY || "").trim();
+    const senderEmail = String(process.env.BREVO_SENDER_EMAIL || "").trim();
+    const senderName = String(process.env.BREVO_SENDER_NAME || "HeyYou").trim();
 
-    if (!user || !pass) {
-        throw new Error("GMAIL_USER or GMAIL_APP_PASSWORD is missing on Render.");
+    if (!apiKey || !senderEmail) {
+        throw new Error("BREVO_API_KEY or BREVO_SENDER_EMAIL is missing on Render.");
     }
 
-    /*
-       Gmail SMTP only. No other app settings are changed.
-       Try the standard SMTPS port first, then STARTTLS if needed.
-    */
-    const smtpOptions = [
-        {
-            host: "smtp.gmail.com",
-            port: 465,
-            secure: true
+    const payload = {
+        sender: {
+            email: senderEmail,
+            name: senderName
         },
-        {
-            host: "smtp.gmail.com",
-            port: 587,
-            secure: false,
-            requireTLS: true
-        }
-    ];
+        to: [
+            {
+                email
+            }
+        ],
+        subject: "HeyYou password reset OTP",
+        textContent: `Your HeyYou password reset OTP is ${otp}. It expires in 10 minutes.`
+    };
 
-    let lastError = null;
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+            "accept": "application/json",
+            "api-key": apiKey,
+            "content-type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    });
 
-    for (const options of smtpOptions) {
-        const transporter = nodemailer.createTransport({
-            ...options,
-            auth: {
-                user,
-                pass
-            },
-            connectionTimeout: 15000,
-            greetingTimeout: 15000,
-            socketTimeout: 20000
-        });
-
+    if (!response.ok) {
+        let detail = "";
         try {
-            await transporter.sendMail({
-                from: user,
-                to: email,
-                subject: "HeyYou password reset OTP",
-                text: `Your HeyYou password reset OTP is ${otp}. It expires in 10 minutes.`
-            });
+            detail = await response.text();
+        } catch (_) {}
 
-            try {
-                transporter.close();
-            } catch (_) {}
+        console.log(
+            "BREVO HTTPS OTP ATTEMPT FAILED:",
+            response.status,
+            detail
+        );
 
-            return;
-        } catch (error) {
-            lastError = error;
-            console.log(
-                "GMAIL SMTP ATTEMPT FAILED:",
-                options.port,
-                error.code || "",
-                error.message || error
-            );
-
-            try {
-                transporter.close();
-            } catch (_) {}
-        }
+        throw new Error(
+            `Brevo email API failed (${response.status}). ${detail || "Check BREVO_API_KEY and BREVO_SENDER_EMAIL."}`
+        );
     }
 
-    throw lastError || new Error("Gmail SMTP could not send the OTP.");
+    return;
 }
 
 app.post("/api/password-reset/request", async (req, res) => {
