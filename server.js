@@ -1,4 +1,4 @@
-﻿﻿const express = require("express");
+﻿const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const session = require("express-session");
@@ -36,6 +36,11 @@ function emptyDB() {
         reports: [],
         statuses: [],
         status_views: [],
+        settings: {
+            status_ads_enabled: false,
+            status_ads_frequency: 5
+        },
+        support_messages: [],
         seq: {
             users: 0,
             messages: 0,
@@ -81,6 +86,18 @@ function loadDB() {
             ? data.status_views
             : [];
 
+        data.settings = {
+            status_ads_enabled: false,
+            status_ads_frequency: 5,
+            ...(data.settings || {})
+        };
+        data.settings.status_ads_enabled = Boolean(data.settings.status_ads_enabled);
+        data.settings.status_ads_frequency = Math.max(1, Number(data.settings.status_ads_frequency || 5));
+
+        data.support_messages = Array.isArray(data.support_messages)
+            ? data.support_messages
+            : [];
+
         data.seq = data.seq || {};
 
         data.seq.users = Number(data.seq.users || 0);
@@ -91,6 +108,7 @@ function loadDB() {
         data.seq.statuses = Number(data.seq.statuses || 0);
         data.seq.status_views =
             Number(data.seq.status_views || 0);
+        data.seq.support_messages = Number(data.seq.support_messages || 0);
 
         /*
          * Make sure old users also receive the new
@@ -604,6 +622,14 @@ function requireAuth(
         });
     }
 
+    const current = getCurrentUser(req);
+    if (current?.is_blocked) {
+        req.session.destroy(() => {});
+        return res.status(403).json({
+            error: "Your HeyYou account has been blocked by the administrator."
+        });
+    }
+
     next();
 }
 
@@ -862,6 +888,8 @@ app.post(
 
                 role: "user",
 
+                is_blocked: false,
+
                 status: "online",
 
                 created_at:
@@ -1084,6 +1112,12 @@ const normalizedLoginPhone =
                 return res.status(401).json({
                   error:
     "Invalid email/mobile or password"
+                });
+            }
+
+            if (user.is_blocked) {
+                return res.status(403).json({
+                    error: "Your HeyYou account has been blocked by the administrator."
                 });
             }
 
@@ -1659,6 +1693,12 @@ app.get(
                 settings:
                     user.settings,
 
+                status_ads_enabled:
+                    Boolean(db.settings?.status_ads_enabled),
+
+                status_ads_frequency:
+                    Math.max(1, Number(db.settings?.status_ads_frequency || 5)),
+
                 user:
                     publicUser(user)
             });
@@ -1814,6 +1854,12 @@ app.put(
 
                 settings:
                     user.settings,
+
+                status_ads_enabled:
+                    Boolean(db.settings?.status_ads_enabled),
+
+                status_ads_frequency:
+                    Math.max(1, Number(db.settings?.status_ads_frequency || 5)),
 
                 user:
                     publicUser(user)
@@ -3649,12 +3695,111 @@ app.get(
     requireAdmin,
     (req, res) => {
         res.json(
-            db.users.map(
-                publicUser
-            )
+            db.users.map(user => ({
+                ...publicUser(user),
+                is_blocked: Boolean(user.is_blocked)
+            }))
         );
     }
 );
+
+app.get("/api/admin/settings", requireAuth, requireAdmin, (req, res) => {
+    res.json({
+        status_ads_enabled: Boolean(db.settings?.status_ads_enabled),
+        status_ads_frequency: Math.max(1, Number(db.settings?.status_ads_frequency || 5))
+    });
+});
+
+app.put("/api/admin/settings", requireAuth, requireAdmin, (req, res) => {
+    const enabled = req.body?.status_ads_enabled;
+    const frequency = Number(req.body?.status_ads_frequency || 5);
+    if (typeof enabled === "boolean") db.settings.status_ads_enabled = enabled;
+    if (Number.isFinite(frequency) && frequency >= 1) db.settings.status_ads_frequency = Math.min(50, Math.floor(frequency));
+    saveDB();
+    res.json({ ok: true, settings: db.settings });
+});
+
+app.post("/api/admin/users/:id/block", requireAuth, requireAdmin, (req, res) => {
+    const id = Number(req.params.id);
+    const user = db.users.find(u => Number(u.id) === id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    if (user.role === "admin") return res.status(400).json({ error: "Admin accounts cannot be blocked." });
+    user.is_blocked = true;
+    user.status = "offline";
+    saveDB();
+    res.json({ ok: true, user: publicUser(user) });
+});
+
+app.post("/api/admin/users/:id/unblock", requireAuth, requireAdmin, (req, res) => {
+    const id = Number(req.params.id);
+    const user = db.users.find(u => Number(u.id) === id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    user.is_blocked = false;
+    saveDB();
+    res.json({ ok: true, user: publicUser(user) });
+});
+
+app.delete("/api/admin/users/:id", requireAuth, requireAdmin, (req, res) => {
+    const id = Number(req.params.id);
+    const user = db.users.find(u => Number(u.id) === id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    if (user.role === "admin") return res.status(400).json({ error: "Admin accounts cannot be deleted." });
+    if (user.avatar) deleteUploadedFile(user.avatar);
+    db.users = db.users.filter(u => Number(u.id) !== id);
+    db.messages = db.messages.filter(m => Number(m.sender_id) !== id && Number(m.receiver_id) !== id);
+    db.status_views = db.status_views.filter(v => Number(v.viewer_id) !== id);
+    db.statuses = db.statuses.filter(st => {
+        if (Number(st.user_id) !== id) return true;
+        deleteUploadedFile(st.file_url || st.media_url || "");
+        return false;
+    });
+    db.users.forEach(u => {
+        u.contacts = Array.isArray(u.contacts) ? u.contacts.filter(cid => Number(cid) !== id) : [];
+        u.blocked_users = Array.isArray(u.blocked_users) ? u.blocked_users.filter(cid => Number(cid) !== id) : [];
+    });
+    db.groups = (db.groups || []).map(g => ({ ...g, members: (g.members || []).filter(mid => Number(mid) !== id) })).filter(g => Number(g.owner_id) !== id && (g.members || []).length);
+    db.group_messages = (db.group_messages || []).filter(m => Number(m.sender_id) !== id);
+    db.support_messages = (db.support_messages || []).filter(m => Number(m.user_id) !== id);
+    saveDB();
+    res.json({ ok: true });
+});
+
+app.get("/api/admin/support", requireAuth, requireAdmin, (req, res) => {
+    const messages = (db.support_messages || []).map(m => ({
+        ...m,
+        user: publicUser(db.users.find(u => Number(u.id) === Number(m.user_id)))
+    }));
+    res.json(messages);
+});
+
+app.post("/api/admin/support/:id/reply", requireAuth, requireAdmin, (req, res) => {
+    const threadId = String(req.params.id || "");
+    const text = String(req.body?.message || "").trim();
+    if (!threadId || !text) return res.status(400).json({ error: "Message is required" });
+    const thread = (db.support_messages || []).find(m => String(m.thread_id) === threadId);
+    if (!thread) return res.status(404).json({ error: "Conversation not found" });
+    const msg = { id: nextId("support_messages"), thread_id: threadId, user_id: Number(thread.user_id), sender_id: Number(req.session.user.id), sender_role: "admin", message: text, created_at: new Date().toISOString() };
+    db.support_messages.push(msg);
+    saveDB();
+    res.json({ ok: true, message: msg });
+});
+
+app.get("/api/support/messages", requireAuth, (req, res) => {
+    const userId = Number(req.session.user.id);
+    res.json((db.support_messages || []).filter(m => Number(m.user_id) === userId));
+});
+
+app.post("/api/support/messages", requireAuth, (req, res) => {
+    const userId = Number(req.session.user.id);
+    const text = String(req.body?.message || "").trim();
+    if (!text) return res.status(400).json({ error: "Message is required" });
+    const existing = (db.support_messages || []).find(m => Number(m.user_id) === userId);
+    const threadId = existing ? String(existing.thread_id) : `support-${userId}`;
+    const msg = { id: nextId("support_messages"), thread_id: threadId, user_id: userId, sender_id: userId, sender_role: "user", message: text, created_at: new Date().toISOString() };
+    db.support_messages.push(msg);
+    saveDB();
+    res.json({ ok: true, message: msg });
+});
 
 /* =====================================================
    ONLINE USERS

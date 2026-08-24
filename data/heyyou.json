@@ -4,7 +4,7 @@
       "id": 1,
       "name": "HeyYou Admin",
       "email": "farhanraza9911@gmail.com",
-      "password": "$2b$10$KpIudVaJn.izhkfQqnSvauVa.5Kg3x2Y3945idAhNQMtTvQknmiHO",
+      "password": "$2b$10$QgYTk5bVVrjq6TzZC97UCOpSV9aqvX1weP6KqNkaBD9G85ebI4uZ6",
       "avatar": "",
       "bio": "",
       "role": "admin",
@@ -61,7 +61,7 @@
       "avatar": "/uploads/1786967393357-d3469b4d061b.jpg",
       "bio": "i am a tester",
       "role": "user",
-      "status": "offline",
+      "status": "online",
       "created_at": "2026-08-17T11:20:12.621Z",
       "settings": {
         "theme": "light",
@@ -78,7 +78,6 @@
       "blocked_users": [],
       "contacts": [
         4,
-        5,
         2
       ]
     },
@@ -88,10 +87,10 @@
       "email": "farhanraza1234567@gmail.com",
       "phone": "+923087321258",
       "password": "$2b$10$K9KCvQQ42ujozur.1w2Szuw2r.euYum/yCxNgYi1BPalhjVBfWjyi",
-      "avatar": "/uploads/1787490974956-c8c06509c563b303.png",
+      "avatar": "/uploads/1787575729055-f02edc11bfff0806.png",
       "bio": "",
       "role": "user",
-      "status": "online",
+      "status": "offline",
       "created_at": "2026-08-21T02:00:49.127Z",
       "settings": {
         "theme": "light",
@@ -108,35 +107,8 @@
       "blocked_users": [],
       "contacts": [
         3,
-        5,
         2
       ]
-    },
-    {
-      "id": 5,
-      "name": "farhan",
-      "email": "",
-      "phone": "+923226800356",
-      "password": "$2b$10$kJAPBy5bHoyuaPL9Fe57qOle6Z/s1GAcXmgODEGviTW.MaTtkjpIu",
-      "avatar": "",
-      "bio": "",
-      "role": "user",
-      "status": "offline",
-      "created_at": "2026-08-21T10:48:26.916Z",
-      "settings": {
-        "theme": "light",
-        "notifications": true,
-        "message_notifications": true,
-        "call_notifications": true,
-        "sound": true,
-        "read_receipts": true,
-        "last_seen": true,
-        "online_status": true,
-        "allow_audio_calls": true,
-        "allow_video_calls": true
-      },
-      "blocked_users": [],
-      "contacts": []
     }
   ],
   "messages": [
@@ -326,17 +298,6 @@
       "file_type": "",
       "sender_name": "FARHAN RAZA",
       "created_at": "2026-08-21T01:17:44.744Z"
-    },
-    {
-      "id": 18,
-      "sender_id": 3,
-      "receiver_id": 5,
-      "text": "📍 Location: https://www.google.com/maps?q=24.7011667%2C46.7420896",
-      "file_url": "",
-      "file_name": "",
-      "file_type": "",
-      "sender_name": "ali",
-      "created_at": "2026-08-22T12:15:41.014Z"
     }
   ],
   "reports": [],
@@ -344,10 +305,11 @@
     "users": 5,
     "messages": 18,
     "reports": 0,
-    "statuses": 30,
-    "status_views": 10,
+    "statuses": 31,
+    "status_views": 11,
     "groups": 1,
-    "group_messages": 0
+    "group_messages": 1,
+    "support_messages": 2
   },
   "statuses": [
     {
@@ -365,7 +327,7 @@
       "media_type": "video/mp4",
       "created_at": "2026-08-23T14:00:23.878Z",
       "expires_at": "2026-08-24T14:00:23.878Z",
-      "views": 1
+      "views": 2
     }
   ],
   "status_views": [
@@ -374,6 +336,12 @@
       "status_id": 30,
       "viewer_id": 3,
       "created_at": "2026-08-23T14:00:43.987Z"
+    },
+    {
+      "id": 11,
+      "status_id": 30,
+      "viewer_id": 1,
+      "created_at": "2026-08-24T12:50:28.038Z"
     }
   ],
   "groups": [
@@ -384,12 +352,44 @@
       "members": [
         4,
         3,
-        5,
         2
       ],
       "created_by_name": "ahmed",
       "created_at": "2026-08-23T13:16:41.265Z"
     }
   ],
-  "group_messages": []
+  "group_messages": [
+    {
+      "id": 1,
+      "group_id": 1,
+      "sender_id": 4,
+      "sender_name": "ahmed",
+      "text": "hi",
+      "created_at": "2026-08-24T12:58:56.247Z"
+    }
+  ],
+  "settings": {
+    "status_ads_enabled": false,
+    "status_ads_frequency": 5
+  },
+  "support_messages": [
+    {
+      "id": 1,
+      "thread_id": "support-4",
+      "user_id": 4,
+      "sender_id": 4,
+      "sender_role": "user",
+      "message": "test",
+      "created_at": "2026-08-24T12:48:18.847Z"
+    },
+    {
+      "id": 2,
+      "thread_id": "support-4",
+      "user_id": 4,
+      "sender_id": 1,
+      "sender_role": "admin",
+      "message": "test 2",
+      "created_at": "2026-08-24T12:57:57.029Z"
+    }
+  ]
 }

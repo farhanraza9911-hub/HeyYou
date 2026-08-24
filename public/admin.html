@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -140,6 +140,9 @@ button.action{
     background:#dc3545;
     color:white;
 }
+.success{background:#198754;color:white;}
+.secondary{background:#6c757d;color:white;}
+.support-message{padding:10px;border:1px solid #eee;border-radius:10px;margin:8px 0;}
 
 </style>
 </head>
@@ -253,6 +256,7 @@ button.action{
                         <th>Role</th>
                         <th>Status</th>
                         <th>Created</th>
+                        <th>Actions</th>
 
                     </tr>
 
@@ -261,7 +265,7 @@ button.action{
                 <tbody id="usersTable">
 
                     <tr>
-                        <td colspan="6">
+                        <td colspan="7">
                             Loading...
                         </td>
                     </tr>
@@ -274,6 +278,22 @@ button.action{
 
     </div>
 
+
+    <div class="panel">
+        <h2>Status Ads</h2>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <label><input type="checkbox" id="statusAdsEnabled"> Enable status ads</label>
+            <label>Show after <input id="statusAdsFrequency" type="number" min="1" max="50" value="5" style="width:70px;padding:6px"> statuses</label>
+            <button class="action refresh" onclick="saveAdSettings()">Save Ad Settings</button>
+        </div>
+        <div id="adSettingsMessage" style="margin-top:10px;color:#666"></div>
+    </div>
+
+    <div class="panel">
+        <h2>Contact Us Messages</h2>
+        <button class="action refresh" onclick="loadSupport()">Refresh Messages</button>
+        <div id="supportAdminList" style="margin-top:12px">Loading...</div>
+    </div>
 
     <div class="panel">
 
@@ -542,19 +562,9 @@ function renderUsers(
                 </td>
 
                 <td>
-
-                    <span class="badge ${
-                        user.status === "online"
-                            ? "online"
-                            : ""
-                    }">
-
-                        ${escapeHtml(
-                            user.status
-                        )}
-
+                    <span class="badge ${user.is_blocked ? "danger" : (user.status === "online" ? "online" : "")}">
+                        ${user.is_blocked ? "blocked" : escapeHtml(user.status)}
                     </span>
-
                 </td>
 
                 <td>
@@ -567,6 +577,13 @@ function renderUsers(
                             :
                         ""
                     }
+                </td>
+
+                <td>
+                    ${user.role === "admin" ? "" : `
+                        <button class="action ${user.is_blocked ? "success" : "secondary"}" onclick="toggleBlock(${Number(user.id)}, ${user.is_blocked ? "false" : "true"})">${user.is_blocked ? "Unblock" : "Block"}</button>
+                        <button class="action danger" onclick="deleteUser(${Number(user.id)})">Delete</button>
+                    `}
                 </td>
 
                 `;
@@ -679,6 +696,33 @@ function renderReports(
 }
 
 
+async function toggleBlock(id, shouldBlock){
+    if(!confirm(shouldBlock ? "Block this user?" : "Unblock this user?")) return;
+    try { const r=await fetch(`/api/admin/users/${id}/${shouldBlock?"block":"unblock"}`,{method:"POST"}); const d=await r.json(); if(!r.ok) throw new Error(d.error||"Request failed"); await loadDashboard(); } catch(e){alert(e.message);}
+}
+async function deleteUser(id){
+    if(!confirm("Delete this user permanently? This cannot be undone.")) return;
+    try { const r=await fetch(`/api/admin/users/${id}`,{method:"DELETE"}); const d=await r.json(); if(!r.ok) throw new Error(d.error||"Could not delete user"); await loadDashboard(); } catch(e){alert(e.message);}
+}
+async function loadAdSettings(){
+    try { const r=await fetch("/api/admin/settings",{cache:"no-store"}); if(!r.ok) return; const d=await r.json(); document.getElementById("statusAdsEnabled").checked=Boolean(d.status_ads_enabled); document.getElementById("statusAdsFrequency").value=Number(d.status_ads_frequency||5); } catch(e){console.error(e);}
+}
+async function saveAdSettings(){
+    try { const enabled=document.getElementById("statusAdsEnabled").checked; const frequency=Math.max(1,Number(document.getElementById("statusAdsFrequency").value||5)); const r=await fetch("/api/admin/settings",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({status_ads_enabled:enabled,status_ads_frequency:frequency})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||"Could not save settings"); document.getElementById("adSettingsMessage").textContent="Ad settings saved."; } catch(e){document.getElementById("adSettingsMessage").textContent=e.message;}
+}
+async function loadSupport(){
+    const box=document.getElementById("supportAdminList"); box.textContent="Loading...";
+    try {
+        const r=await fetch("/api/admin/support",{cache:"no-store"}); const messages=r.ok?await r.json():[]; const grouped={}; messages.forEach(m=>(grouped[m.thread_id]??=[]).push(m)); const threads=Object.values(grouped);
+        if(!threads.length){box.innerHTML='<div style="color:#777">No Contact Us messages.</div>';return;}
+        box.innerHTML=threads.map(thread=>{ const first=thread[0], user=first.user||{}; return `<div class="support-message"><strong>${escapeHtml(user.name||"User")}</strong> <span style="color:#777">${escapeHtml(user.email||user.phone||"")}</span><div style="margin:8px 0">${thread.map(m=>`<div style="padding:6px 0;border-top:1px solid #eee"><b>${m.sender_role==='admin'?'Admin':'User'}:</b> ${escapeHtml(m.message)}<div style="font-size:11px;color:#777">${new Date(m.created_at).toLocaleString()}</div></div>`).join('')}</div><div style="display:flex;gap:8px"><input id="reply-${escapeHtml(String(first.thread_id))}" placeholder="Reply to user..." style="flex:1;padding:8px;border:1px solid #ddd;border-radius:7px"><button class="action refresh" onclick="replySupport('${escapeHtml(String(first.thread_id))}')">Reply</button></div></div>`; }).join('');
+    } catch(e){box.textContent="Could not load messages.";}
+}
+async function replySupport(threadId){
+    const input=document.getElementById("reply-"+threadId); if(!input||!input.value.trim()) return;
+    try { const r=await fetch(`/api/admin/support/${encodeURIComponent(threadId)}/reply`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:input.value.trim()})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||"Could not reply"); await loadSupport(); } catch(e){alert(e.message);}
+}
+
 async function logout(){
 
     try{
@@ -707,6 +751,8 @@ async function logout(){
 
 
 loadDashboard();
+loadAdSettings();
+loadSupport();
 
 </script>
 

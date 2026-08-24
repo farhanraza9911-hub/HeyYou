@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 
@@ -3214,6 +3214,8 @@ body.chat-open .mobile-back{
                     © 2026 HeyYou
                 </p>
 
+                <button type="button" onclick="openSupport()" style="border:0;border-radius:10px;padding:11px 16px;background:#128c7e;color:#fff;font-weight:700;cursor:pointer;margin-top:8px">Contact Us</button>
+
             </div>
 
         </div>
@@ -5538,6 +5540,51 @@ async function publishStatus(){
 
 
 /* =====================================================
+   STATUS ADS / SUPPORT
+===================================================== */
+window.statusAdsEnabled = false;
+window.statusAdsFrequency = 5;
+
+async function loadStatusAdSettings(){
+    try {
+        const r = await fetch("/api/settings", {cache:"no-store"});
+        if (!r.ok) return;
+        const data = await r.json();
+        const settings = data.settings || data || {};
+        window.statusAdsEnabled = Boolean(settings.status_ads_enabled);
+        window.statusAdsFrequency = Math.max(1, Number(settings.status_ads_frequency || 5));
+    } catch(e) { console.error("Status ad settings:", e); }
+}
+
+async function openSupport(){
+    const modal=document.getElementById("supportModal");
+    modal.style.display="flex";
+    await loadSupportMessages();
+}
+function closeSupport(){ document.getElementById("supportModal").style.display="none"; }
+async function loadSupportMessages(){
+    const box=document.getElementById("supportMessages");
+    box.innerHTML='<div style="color:#777;text-align:center;padding:20px">Loading...</div>';
+    try {
+        const r=await fetch("/api/support/messages",{cache:"no-store"});
+        const messages=r.ok?await r.json():[];
+        box.innerHTML=messages.length?messages.map(m=>`<div style="padding:8px 10px;margin:6px 0;border-radius:10px;background:${m.sender_role==='admin'?'#e8f5e9':'#f2f2f2'}"><div style="font-size:11px;color:#777">${m.sender_role==='admin'?'Admin':'You'} · ${new Date(m.created_at).toLocaleString()}</div><div style="margin-top:4px;white-space:pre-wrap">${escapeHtml(m.message)}</div></div>`).join(''):'<div style="color:#777;text-align:center;padding:20px">No messages yet.</div>';
+        box.scrollTop=box.scrollHeight;
+    } catch(e) { box.innerHTML='<div style="color:#b00;padding:20px">Could not load messages.</div>'; }
+}
+async function sendSupportMessage(){
+    const input=document.getElementById("supportInput");
+    const message=input.value.trim();
+    if(!message) return;
+    try {
+        const r=await fetch("/api/support/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message})});
+        const data=await r.json();
+        if(!r.ok){alert(data.error||"Could not send message");return;}
+        input.value=""; await loadSupportMessages();
+    } catch(e){alert("Could not send message.");}
+}
+
+/* =====================================================
    LOAD STATUSES
 ===================================================== */
 
@@ -5548,6 +5595,7 @@ async function loadStatuses(){
     )
         return;
 
+    await loadStatusAdSettings();
 
     try{
 
@@ -6050,7 +6098,7 @@ function renderStatuses(
 
 
     others.forEach(
-        function(group){
+        function(group, index){
 
             const user =
                 group.user || {};
@@ -6140,6 +6188,17 @@ function renderStatuses(
             list.appendChild(
                 row
             );
+
+            if (window.statusAdsEnabled && window.statusAdsFrequency > 0 && index !== undefined) {
+                const renderedCount = index + 1;
+                if (renderedCount % window.statusAdsFrequency === 0) {
+                    const ad = document.createElement("div");
+                    ad.className = "status-user";
+                    ad.style.cursor = "default";
+                    ad.innerHTML = '<div class="status-avatar" style="font-size:20px">AD</div><div class="status-details"><div class="status-title">Sponsored</div><div class="status-subtitle">Advertisement</div></div>';
+                    list.appendChild(ad);
+                }
+            }
 
         }
     );
@@ -9092,6 +9151,16 @@ applySettings();
 loadMe();
 
 </script>
+
+
+<div id="supportModal" style="display:none;position:fixed;inset:0;background:#0007;z-index:9999;align-items:center;justify-content:center;padding:16px">
+  <div style="width:min(520px,100%);max-height:85vh;overflow:auto;background:#fff;border-radius:16px;padding:18px;box-shadow:0 20px 60px #0005">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px"><strong>Contact Us</strong><button type="button" onclick="closeSupport()" style="border:0;background:transparent;font-size:24px">×</button></div>
+    <div id="supportMessages" style="min-height:120px;max-height:42vh;overflow:auto;border:1px solid #eee;border-radius:10px;padding:10px;margin-bottom:10px"></div>
+    <textarea id="supportInput" rows="4" placeholder="Write your complaint or message..." style="width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:10px;padding:10px;resize:vertical"></textarea>
+    <button type="button" onclick="sendSupportMessage()" style="width:100%;border:0;border-radius:10px;padding:11px;background:#128c7e;color:#fff;font-weight:700;margin-top:8px">Send</button>
+  </div>
+</div>
 
 </body>
 </html>
