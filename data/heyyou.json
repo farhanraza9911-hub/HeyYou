@@ -61,7 +61,7 @@
       "avatar": "/uploads/1786967393357-d3469b4d061b.jpg",
       "bio": "i am a tester",
       "role": "user",
-      "status": "offline",
+      "status": "online",
       "created_at": "2026-08-17T11:20:12.621Z",
       "settings": {
         "theme": "light",
@@ -90,7 +90,7 @@
       "avatar": "/uploads/1787575729055-f02edc11bfff0806.png",
       "bio": "",
       "role": "user",
-      "status": "offline",
+      "status": "online",
       "created_at": "2026-08-21T02:00:49.127Z",
       "settings": {
         "theme": "light",

@@ -3769,12 +3769,18 @@ io.on(
                     data?.fileUrl ||
                     "";
 
+                const hasSharedContact =
+                    Boolean(
+                        String(data?.contact_phone || "").trim()
+                    );
+
                 if (
                     !to ||
                     (
                         !text &&
                         !fileUrl &&
-                        !Number(data?.contact_id || data?.contactId || 0)
+                        !Number(data?.contact_id || data?.contactId || 0) &&
+                        !hasSharedContact
                     )
                 ) {
                     return;
@@ -3823,6 +3829,14 @@ io.on(
                     socket.emit("message-error", {error:"Contact not found."});
                     return;
                 }
+
+                const phonebookContact =
+                    !contactId && String(data?.contact_phone || "").trim()
+                        ? {
+                            name: String(data?.contact_name || "Contact").trim().slice(0,120),
+                            phone: String(data?.contact_phone || "").trim().slice(0,80)
+                        }
+                        : null;
                 const message = {
                     id:
                         nextId(
@@ -3839,9 +3853,9 @@ io.on(
 
                     text,
                     contact_id: sharedContact ? Number(sharedContact.id) : 0,
-                    contact_name: sharedContact?.name || "",
+                    contact_name: sharedContact?.name || phonebookContact?.name || "",
                     contact_email: sharedContact?.email || "",
-                    contact_phone: sharedContact?.phone || "",
+                    contact_phone: sharedContact?.phone || phonebookContact?.phone || "",
                     contact_avatar: sharedContact?.avatar || "",
 
                     file_url:
@@ -3905,7 +3919,14 @@ io.on(
             const senderContacts = db.users.find(u => Number(u.id) === Number(socket.userId))?.contacts || [];
             if (contactId && !senderContacts.some(id => Number(id) === contactId)) return;
             const sharedContact = contactId ? db.users.find(u => Number(u.id) === contactId) : null;
-            if (!text && !sharedContact) return;
+            const phonebookContact =
+                !contactId && String(data?.contact_phone || "").trim()
+                    ? {
+                        name: String(data?.contact_name || "Contact").trim().slice(0,120),
+                        phone: String(data?.contact_phone || "").trim().slice(0,80)
+                    }
+                    : null;
+            if (!text && !sharedContact && !phonebookContact) return;
 
             const sender = db.users.find(u => Number(u.id) === Number(socket.userId));
             const message = {
@@ -3915,9 +3936,9 @@ io.on(
                 sender_name: sender?.name || "",
                 text,
                 contact_id: sharedContact ? Number(sharedContact.id) : 0,
-                contact_name: sharedContact?.name || "",
+                contact_name: sharedContact?.name || phonebookContact?.name || "",
                 contact_email: sharedContact?.email || "",
-                contact_phone: sharedContact?.phone || "",
+                contact_phone: sharedContact?.phone || phonebookContact?.phone || "",
                 contact_avatar: sharedContact?.avatar || "",
                 created_at: new Date().toISOString()
             };

@@ -4661,8 +4661,8 @@ function addMessage(
 
     let html = "";
 
-    if(Number(message.contact_id)){
-        const c={id:Number(message.contact_id),name:message.contact_name||"Contact",email:message.contact_email||"",phone:message.contact_phone||"",avatar:message.contact_avatar||""};
+    if(Number(message.contact_id) || message.contact_name || message.contact_phone || message.contact_email){
+        const c={id:Number(message.contact_id)||0,name:message.contact_name||"Contact",email:message.contact_email||"",phone:message.contact_phone||"",avatar:message.contact_avatar||""};
         html += '<div class="chat-contact-card"><div style="width:48px;height:48px;border-radius:50%;overflow:hidden;flex-shrink:0">'+avatarMarkup(c)+'</div><div style="min-width:0"><strong>'+escapeHtml(c.name)+'</strong><div style="font-size:12px;color:#777">'+escapeHtml(c.phone||c.email||"")+'</div></div></div>';
     }
 
@@ -4929,24 +4929,62 @@ function sendLocationFromMenu(){ closeAttachmentMenu(); sendLocation(); }
 async function openContactPicker(){
     closeAttachmentMenu();
     if(!selectedUser && !selectedGroup){ alert("Please select a chat first."); return; }
-    const overlay=document.getElementById("contactPickerOverlay");
-    const list=document.getElementById("contactShareList");
-    overlay.classList.add("show"); list.textContent="Loading contacts...";
+
+    /* Use the phone's native Contacts Picker so any phone-book contact
+       can be shared, whether or not that person is a HeyYou user. */
+    if(!navigator.contacts || !navigator.contacts.select){
+        alert("Phone book access is supported on compatible mobile browsers only. Please allow Contacts access when prompted.");
+        return;
+    }
+
     try{
-        const r=await fetch("/api/contacts",{cache:"no-store"});
-        const contacts=r.ok?await r.json():[];
-        if(!contacts.length){list.innerHTML='<div style="padding:15px;color:#777">No saved contacts.</div>';return;}
-        list.innerHTML=contacts.map(c=>'<div class="contact-share-row" onclick="sendSharedContact('+Number(c.id)+')"><div style="width:42px;height:42px;border-radius:50%;overflow:hidden;flex-shrink:0">'+avatarMarkup(c)+'</div><div><strong>'+escapeHtml(c.name||"Contact")+'</strong><div style="font-size:12px;color:#777">'+escapeHtml(c.phone||c.email||"")+'</div></div></div>').join("");
-    }catch(e){console.error(e);list.innerHTML='<div style="padding:15px;color:#c00">Could not load contacts.</div>';}
+        const contacts=await navigator.contacts.select(
+            ["name","tel"],
+            {multiple:false}
+        );
+
+        const contact=Array.isArray(contacts) ? contacts[0] : null;
+        const name=contact && Array.isArray(contact.name)
+            ? (contact.name.find(Boolean) || "")
+            : "";
+        const phone=contact && Array.isArray(contact.tel)
+            ? (contact.tel.find(Boolean) || "")
+            : "";
+
+        if(!phone){
+            alert("The selected contact has no phone number.");
+            return;
+        }
+
+        sendPhonebookContact({
+            name: name || "Contact",
+            phone: phone
+        });
+    }catch(e){
+        if(e && e.name !== "AbortError"){
+            console.error("Phone contact picker:",e);
+            alert("Could not access your phone contacts. Please allow Contacts permission.");
+        }
+    }
 }
 function closeContactPicker(event){ if(event && event.target!==event.currentTarget) return; document.getElementById("contactPickerOverlay")?.classList.remove("show"); }
-function sendSharedContact(contactId){
+function sendPhonebookContact(contact){
     const target=selectedUser;
     if(!socket?.connected || (!target && !selectedGroup)){alert("Server connection lost.");return;}
-    const payload={contact_id:Number(contactId)};
-    if(selectedGroup) { payload.group_id=Number(selectedGroup.id); socket.emit("group-message",payload); }
-    else { payload.to=target.id; socket.emit("message",payload); }
-    closeContactPicker();
+    if(!contact || !contact.phone) return;
+
+    const payload={
+        contact_name:String(contact.name || "Contact").slice(0,120),
+        contact_phone:String(contact.phone).slice(0,80)
+    };
+
+    if(selectedGroup) {
+        payload.group_id=Number(selectedGroup.id);
+        socket.emit("group-message",payload);
+    } else {
+        payload.to=target.id;
+        socket.emit("message",payload);
+    }
 }
 
 document.addEventListener("click",function(e){ if(!e.target.closest(".attachment-wrap")) closeAttachmentMenu(); });
