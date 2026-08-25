@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 
@@ -301,8 +301,38 @@ body.dark .contact-menu{background:#202c33;color:#e9edef;border-color:#374045}
 .contact-menu-name{font-weight:700;font-size:15px;margin-bottom:8px}
 .contact-menu-row{font-size:13px;line-height:1.45;padding:7px 0;border-top:1px solid #eee}
 body.dark .contact-menu-row{border-color:#374045}
-.contact-menu-label{display:block;font-size:11px;color:#777;margin-bottom:2px}
+ .contact-menu-label{display:block;font-size:11px;color:#777;margin-bottom:2px}
 body.dark .contact-menu-label{color:#aebac1}
+
+.attachment-wrap{position:relative;flex-shrink:0}
+.attachment-menu{display:none;position:absolute;bottom:48px;left:0;width:190px;background:#fff;border:1px solid #ddd;border-radius:12px;padding:8px;box-shadow:0 10px 30px #0003;z-index:300}
+.attachment-menu.show{display:block}
+.attachment-menu button{width:100%;display:flex;align-items:center;gap:9px;border:0;background:transparent;color:#222;padding:10px;border-radius:8px;text-align:left;font-size:14px}
+.attachment-menu button:hover{background:#f2f5f8}
+body.dark .attachment-menu{background:#202c33;color:#e9edef;border-color:#374045}
+body.dark .attachment-menu button{color:#e9edef}
+body.dark .attachment-menu button:hover{background:#2a3942}
+.chat-contact-card{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:#f2f5f8;min-width:190px}
+body.dark .chat-contact-card{background:#2a3942}
+.contact-picker-overlay{display:none;position:fixed;inset:0;background:#0008;z-index:9000;align-items:center;justify-content:center;padding:15px}
+.contact-picker-overlay.show{display:flex}
+.contact-picker{width:420px;max-width:100%;max-height:80vh;overflow:auto;background:#fff;border-radius:16px;padding:16px}
+body.dark .contact-picker{background:#202c33;color:#e9edef}
+.contact-share-row{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid #eee;cursor:pointer}
+.contact-share-row:last-child{border-bottom:0}
+.contact-share-row:hover{background:#f5f5f5}
+body.dark .contact-share-row{border-color:#374045}
+body.dark .contact-share-row:hover{background:#2a3942}
+.status-avatar{position:relative;border:0!important;background:#128c7e!important}
+.status-avatar.status-ring{padding:3px;background:conic-gradient(#128c7e 0 100%)!important}
+.status-avatar.status-ring > .status-avatar-inner{width:100%;height:100%;border-radius:50%;overflow:hidden;background:#128c7e;display:flex;align-items:center;justify-content:center}
+.status-avatar.status-ring.status-count-1{background:conic-gradient(#128c7e 0deg 352deg,#fff 352deg 360deg)!important}
+.status-avatar.status-ring.status-count-2{background:conic-gradient(#128c7e 0deg 176deg,#fff 176deg 180deg,#128c7e 180deg 356deg,#fff 356deg 360deg)!important}
+.status-avatar.status-ring.status-count-3{background:conic-gradient(#128c7e 0deg 116deg,#fff 116deg 120deg,#128c7e 120deg 236deg,#fff 236deg 240deg,#128c7e 240deg 356deg,#fff 356deg 360deg)!important}
+.status-avatar.status-ring.status-count-4{background:conic-gradient(#128c7e 0deg 86deg,#fff 86deg 90deg,#128c7e 90deg 176deg,#fff 176deg 180deg,#128c7e 180deg 266deg,#fff 266deg 270deg,#128c7e 270deg 356deg,#fff 356deg 360deg)!important}
+.status-avatar.status-ring.status-count-5{background:conic-gradient(#128c7e 0deg 68deg,#fff 68deg 72deg,#128c7e 72deg 140deg,#fff 140deg 144deg,#128c7e 144deg 212deg,#fff 212deg 216deg,#128c7e 216deg 284deg,#fff 284deg 288deg,#128c7e 288deg 356deg,#fff 356deg 360deg)!important}
+.status-avatar.status-ring > .status-avatar-inner img{width:100%;height:100%;object-fit:cover}
+
 
 .mobile-back{
     display:none;
@@ -465,6 +495,7 @@ body.dark .status-me:hover{
     bottom:-2px;
     width:20px;
     height:20px;
+    padding:0;
     border-radius:50%;
     background:#25d366;
     color:#fff;
@@ -473,6 +504,13 @@ body.dark .status-me:hover{
     align-items:center;
     justify-content:center;
     font-weight:bold;
+    font-family:inherit;
+    font-size:16px;
+    line-height:1;
+    cursor:pointer;
+    z-index:5;
+    appearance:none;
+    -webkit-appearance:none;
 }
 
 .status-details{
@@ -1948,7 +1986,14 @@ body.chat-open .mobile-back{
                         class="status-avatar"
                         id="myStatusAvatar"
                     >?</div>
-                    <div class="status-add">+</div>
+                    <button
+                        type="button"
+                        class="status-add"
+                        id="addStatusButton"
+                        title="Add more status"
+                        aria-label="Add more status"
+                        onclick="event.preventDefault(); event.stopPropagation(); openStatusCreator();"
+                    >+</button>
                 </div>
                 <div class="status-details">
                     <div class="status-title">My Status</div>
@@ -2060,21 +2105,16 @@ body.chat-open .mobile-back{
                 onchange="sendFile()"
             >
 
-            <button
-                class="file-button"
-                type="button"
-                onclick="document.getElementById('fileInput').click()"
-                title="Send file"
-            >📎</button>
-
-            <button
-                id="locationBtn"
-                class="file-button"
-                type="button"
-                onclick="sendLocation()"
-                title="Send location"
-                aria-label="Send location"
-            >📍</button>
+            <div class="attachment-wrap">
+                <button class="file-button" type="button" onclick="toggleAttachmentMenu(event)" title="Attachments" aria-label="Attachments">＋</button>
+                <div class="attachment-menu" id="attachmentMenu">
+                    <button type="button" onclick="chooseAttachment('file')">📎 <span>Files</span></button>
+                    <button type="button" onclick="chooseAttachment('image')">🖼️ <span>Image</span></button>
+                    <button type="button" onclick="chooseAttachment('video')">🎥 <span>Video</span></button>
+                    <button type="button" onclick="sendLocationFromMenu()">📍 <span>Location</span></button>
+                    <button type="button" onclick="openContactPicker()">👤 <span>Contact</span></button>
+                </div>
+            </div>
 
             <input
                 type="text"
@@ -2094,6 +2134,19 @@ body.chat-open .mobile-back{
 
 </div>
 
+
+<!-- =====================================================
+     CONTACT SHARE PICKER
+===================================================== -->
+<div class="contact-picker-overlay" id="contactPickerOverlay" onclick="closeContactPicker(event)">
+    <div class="contact-picker" onclick="event.stopPropagation()">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
+            <strong>Send Contact</strong>
+            <button type="button" onclick="closeContactPicker()" style="border:0;background:transparent;font-size:22px">✕</button>
+        </div>
+        <div id="contactShareList">Loading contacts...</div>
+    </div>
+</div>
 
 <!-- =====================================================
      GROUPS
@@ -2128,9 +2181,8 @@ body.chat-open .mobile-back{
 
     <div class="status-box">
 
-        <h2>
-            Add Status
-        </h2>
+        <h2>Add Status</h2>
+        <div style="font-size:12px;color:#777;margin:-6px 0 12px">Up to 5 active statuses. Each status is shown for 30 seconds while viewing.</div>
 
         <div class="status-type-buttons">
 
@@ -4609,6 +4661,10 @@ function addMessage(
 
     let html = "";
 
+    if(Number(message.contact_id)){
+        const c={id:Number(message.contact_id),name:message.contact_name||"Contact",email:message.contact_email||"",phone:message.contact_phone||"",avatar:message.contact_avatar||""};
+        html += '<div class="chat-contact-card"><div style="width:48px;height:48px;border-radius:50%;overflow:hidden;flex-shrink:0">'+avatarMarkup(c)+'</div><div style="min-width:0"><strong>'+escapeHtml(c.name)+'</strong><div style="font-size:12px;color:#777">'+escapeHtml(c.phone||c.email||"")+'</div></div></div>';
+    }
 
     if(message.text){
         const text = String(message.text);
@@ -4851,6 +4907,49 @@ function sendLocation(){
         }
     );
 }
+
+function toggleAttachmentMenu(event){
+    if(event) event.stopPropagation();
+    const menu=document.getElementById("attachmentMenu");
+    if(menu) menu.classList.toggle("show");
+}
+
+function closeAttachmentMenu(){ const menu=document.getElementById("attachmentMenu"); if(menu) menu.classList.remove("show"); }
+
+function chooseAttachment(kind){
+    closeAttachmentMenu();
+    const input=document.getElementById("fileInput");
+    if(kind==="image") input.accept="image/*";
+    else if(kind==="video") input.accept="video/*";
+    else input.accept="*/*";
+    input.click();
+}
+function sendLocationFromMenu(){ closeAttachmentMenu(); sendLocation(); }
+
+async function openContactPicker(){
+    closeAttachmentMenu();
+    if(!selectedUser && !selectedGroup){ alert("Please select a chat first."); return; }
+    const overlay=document.getElementById("contactPickerOverlay");
+    const list=document.getElementById("contactShareList");
+    overlay.classList.add("show"); list.textContent="Loading contacts...";
+    try{
+        const r=await fetch("/api/contacts",{cache:"no-store"});
+        const contacts=r.ok?await r.json():[];
+        if(!contacts.length){list.innerHTML='<div style="padding:15px;color:#777">No saved contacts.</div>';return;}
+        list.innerHTML=contacts.map(c=>'<div class="contact-share-row" onclick="sendSharedContact('+Number(c.id)+')"><div style="width:42px;height:42px;border-radius:50%;overflow:hidden;flex-shrink:0">'+avatarMarkup(c)+'</div><div><strong>'+escapeHtml(c.name||"Contact")+'</strong><div style="font-size:12px;color:#777">'+escapeHtml(c.phone||c.email||"")+'</div></div></div>').join("");
+    }catch(e){console.error(e);list.innerHTML='<div style="padding:15px;color:#c00">Could not load contacts.</div>';}
+}
+function closeContactPicker(event){ if(event && event.target!==event.currentTarget) return; document.getElementById("contactPickerOverlay")?.classList.remove("show"); }
+function sendSharedContact(contactId){
+    const target=selectedUser;
+    if(!socket?.connected || (!target && !selectedGroup)){alert("Server connection lost.");return;}
+    const payload={contact_id:Number(contactId)};
+    if(selectedGroup) { payload.group_id=Number(selectedGroup.id); socket.emit("group-message",payload); }
+    else { payload.to=target.id; socket.emit("message",payload); }
+    closeContactPicker();
+}
+
+document.addEventListener("click",function(e){ if(!e.target.closest(".attachment-wrap")) closeAttachmentMenu(); });
 
 function sendMessage(){
     if(selectedGroup){
@@ -5160,11 +5259,8 @@ function openMyStatusArea(){
         mine.statuses.length
     ){
 
-        openStatusViewer(
-            mine.user,
-            mine.statuses,
-            0
-        );
+        const mineIndex = statusCache.findIndex(g => Number(g.user?.id) === Number(me.id));
+        openStatusViewer(mine.user, mine.statuses, 0, statusCache, mineIndex);
 
         return;
 
@@ -6046,18 +6142,16 @@ function renderStatuses(
     document.getElementById(
         "myStatusSubtitle"
     ).textContent =
+        mine && mine.statuses && mine.statuses.length
+            ? (mine.statuses.length + " status" + (mine.statuses.length === 1 ? "" : "es") + " • Tap to view")
+            : "Add a status update";
 
-        mine &&
-        mine.statuses &&
-        mine.statuses.length
-
-            ?
-
-        "Tap to view your status"
-
-            :
-
-        "Add a status update";
+    const myAvatarWrap = document.getElementById("myStatusAvatar");
+    if (myAvatarWrap) {
+        const count = mine && Array.isArray(mine.statuses) ? Math.min(5, mine.statuses.length) : 0;
+        myAvatarWrap.className = "status-avatar" + (count ? " status-ring status-count-" + count : "");
+        myAvatarWrap.innerHTML = count ? '<div class="status-avatar-inner">' + avatarMarkup(me) + '</div>' : avatarMarkup(me);
+    }
 
 
     const others =
@@ -6125,12 +6219,10 @@ function renderStatuses(
 
             row.innerHTML =
 
-                '<div class="status-avatar">' +
-
-                    avatarMarkup(
-                        user
-                    ) +
-
+                '<div class="status-avatar status-ring status-count-' + Math.min(5, Math.max(1, statuses.length)) + '">' +
+                    '<div class="status-avatar-inner">' +
+                    avatarMarkup(user) +
+                    '</div>' +
                 '</div>' +
 
                 '<div class="status-details">' +
@@ -6168,11 +6260,8 @@ function renderStatuses(
                 row.onclick =
                     function(){
 
-                        openStatusViewer(
-                            user,
-                            statuses,
-                            0
-                        );
+                        const groupIndex = statusCache.findIndex(g => Number(g.user?.id) === Number(user.id));
+                        openStatusViewer(user, statuses, 0, statusCache, groupIndex);
 
                     };
 
@@ -6210,10 +6299,31 @@ function renderStatuses(
    STATUS VIEWER
 ===================================================== */
 
+function buildStatusViewerSequence(groups, startGroupIndex){
+    const sequence=[];
+    let count=0;
+    const start=Math.max(0, Number(startGroupIndex||0));
+    const freq=Number(window.statusAdsFrequency||5);
+    const ads=Boolean(window.statusAdsEnabled);
+    for(let gi=start; gi<(groups||[]).length; gi++){
+        const g=groups[gi]||{};
+        const user=g.user||{};
+        const arr=Array.isArray(g.statuses)?g.statuses:[];
+        for(const st of arr){
+            sequence.push({kind:"status", status:st, user});
+            count++;
+            if(ads && freq>0 && count%freq===0) sequence.push({kind:"ad", user:{name:"Sponsored"}, status:{display_seconds:30}});
+        }
+    }
+    return sequence;
+}
+
 function openStatusViewer(
     user,
     statuses,
-    index = 0
+    index = 0,
+    allGroups = statusCache,
+    groupIndex = -1
 ){
 
     if(
@@ -6253,13 +6363,14 @@ function openStatusViewer(
         JSON.stringify(
             user || {}
         );
+    viewer.dataset.groups = JSON.stringify(allGroups || []);
+    viewer.dataset.groupIndex = String(groupIndex);
+    const sequence = buildStatusViewerSequence(allGroups || [], groupIndex >= 0 ? groupIndex : 0);
+    const startStatusIndex = Math.max(0, sequence.findIndex(item => item.kind === "status" && Number(item.status?.id) === Number(statuses[i]?.id)));
+    viewer.dataset.sequence = JSON.stringify(sequence);
+    viewer.dataset.index = String(startStatusIndex >= 0 ? startStatusIndex : 0);
 
-
-    renderStatusViewer(
-        user,
-        statuses,
-        i
-    );
+    renderStatusViewerSequence(viewer);
 
 
     viewer.classList.add(
@@ -6273,10 +6384,21 @@ function openStatusViewer(
    RENDER VIEWER
 ===================================================== */
 
+function renderStatusViewerSequence(viewer){
+    let sequence=[];
+    try{ sequence=JSON.parse(viewer.dataset.sequence||"[]"); }catch(e){ return; }
+    const index=Math.max(0,Math.min(Number(viewer.dataset.index||0),sequence.length-1));
+    viewer.dataset.index=String(index);
+    const item=sequence[index];
+    if(!item) return;
+    renderStatusViewer(item.user||{}, [item.status||{}], 0, item.kind === "ad");
+}
+
 function renderStatusViewer(
     user,
     statuses,
-    index
+    index,
+    isAd = false
 ){
 
     const content =
@@ -6288,11 +6410,24 @@ function renderStatusViewer(
     content.innerHTML =
         "";
 
+    if (window.statusAutoTimer) clearTimeout(window.statusAutoTimer);
+    const durationSeconds = Math.min(30, Math.max(1, Number(statuses[index]?.display_seconds || 30)));
+    window.statusAutoTimer = setTimeout(function(){ nextStatus(1); }, durationSeconds * 1000);
 
     const status =
         normalizeStatus(
             statuses[index]
         );
+
+    if(isAd){
+        content.innerHTML = '<div style="color:#fff;text-align:center;padding:50px 25px;font-size:24px"><div style="font-size:52px">AD</div><div style="margin-top:12px;font-weight:700">Sponsored</div><div style="font-size:13px;opacity:.75;margin-top:6px">Advertisement</div></div>';
+        document.getElementById("statusViewerName").textContent = "Sponsored";
+        const deleteButton=document.getElementById("statusDeleteButton");
+        if(deleteButton) deleteButton.style.display="none";
+        if(window.statusAutoTimer) clearTimeout(window.statusAutoTimer);
+        window.statusAutoTimer=setTimeout(function(){nextStatus(1);},30000);
+        return;
+    }
 
 
     document.getElementById(
@@ -6557,80 +6692,30 @@ async function markStatusViewed(
    NEXT STATUS
 ===================================================== */
 
-function nextStatus(
-    direction
-){
-
-    const viewer =
-        document.getElementById(
-            "statusViewer"
-        );
-
-
-    if(
-        !viewer.classList.contains(
-            "show"
-        )
-    )
-        return;
-
-
-    let statuses = [];
-
-    let user = {};
-
-    try{
-
-        statuses =
-            JSON.parse(
-                viewer.dataset.statuses ||
-                "[]"
-            );
-
-        user =
-            JSON.parse(
-                viewer.dataset.user ||
-                "{}"
-            );
-
-    }catch(error){
-
-        return;
-
-    }
-
-
-    const current =
-        Number(
-            viewer.dataset.index ||
-            0
-        );
-
-
-    const next =
-        current +
-        direction;
-
-
-    if(
-        next < 0 ||
-        next >= statuses.length
-    )
-        return;
-
-
-    viewer.dataset.index =
-        next;
-
-
-    renderStatusViewer(
-        user,
-        statuses,
-        next
-    );
-
+function nextStatus(direction){
+    const viewer=document.getElementById("statusViewer");
+    if(!viewer || !viewer.classList.contains("show")) return;
+    let sequence=[];
+    try{ sequence=JSON.parse(viewer.dataset.sequence||"[]"); }catch(e){return;}
+    let current=Number(viewer.dataset.index||0);
+    const next=current+direction;
+    if(next<0 || next>=sequence.length){ if(window.statusAutoTimer) clearTimeout(window.statusAutoTimer); closeStatusViewer(); return; }
+    viewer.dataset.index=String(next);
+    renderStatusViewerSequence(viewer);
 }
 
+(function setupStatusSwipe(){
+    const viewer=document.getElementById("statusViewer");
+    if(!viewer) return;
+    let startX=0,startY=0;
+    viewer.addEventListener("touchstart",function(e){
+        const t=e.changedTouches[0]; startX=t.clientX; startY=t.clientY;
+    },{passive:true});
+    viewer.addEventListener("touchend",function(e){
+        const t=e.changedTouches[0]; const dx=t.clientX-startX; const dy=t.clientY-startY;
+        if(Math.abs(dx)>55 && Math.abs(dx)>Math.abs(dy)) nextStatus(dx<0?1:-1);
+    },{passive:true});
+})();
 
 /* =====================================================
    DELETE CURRENT STATUS
@@ -6641,17 +6726,13 @@ async function deleteCurrentStatus(){
     const viewer = document.getElementById("statusViewer");
     if(!viewer) return;
 
-    let statuses = [];
-    let user = {};
-    try{
-        statuses = JSON.parse(viewer.dataset.statuses || "[]");
-        user = JSON.parse(viewer.dataset.user || "{}");
-    }catch(error){
-        return;
-    }
-
+    let sequence = [];
+    try{ sequence = JSON.parse(viewer.dataset.sequence || "[]"); }catch(error){ return; }
     const index = Number(viewer.dataset.index || 0);
-    const status = statuses[index] || {};
+    const item = sequence[index] || {};
+    if(item.kind === "ad") return;
+    const user = item.user || {};
+    const status = item.status || {};
 
     if(!me || !user || Number(user.id) !== Number(me.id) || !status.id) return;
     if(!confirm("Delete this status?")) return;
@@ -6693,6 +6774,8 @@ async function deleteCurrentStatus(){
 ===================================================== */
 
 function closeStatusViewer(){
+
+    if(window.statusAutoTimer) clearTimeout(window.statusAutoTimer);
 
     const content =
         document.getElementById(

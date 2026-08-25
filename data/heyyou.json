@@ -4,7 +4,7 @@
       "id": 1,
       "name": "HeyYou Admin",
       "email": "farhanraza9911@gmail.com",
-      "password": "$2b$10$QgYTk5bVVrjq6TzZC97UCOpSV9aqvX1weP6KqNkaBD9G85ebI4uZ6",
+      "password": "$2b$12$lCIAD6nf/BN9OAXyvSbLzuPykqazGpyDRVVRaCwWL7jDRhRIc1EWa",
       "avatar": "",
       "bio": "",
       "role": "admin",
@@ -61,7 +61,7 @@
       "avatar": "/uploads/1786967393357-d3469b4d061b.jpg",
       "bio": "i am a tester",
       "role": "user",
-      "status": "online",
+      "status": "offline",
       "created_at": "2026-08-17T11:20:12.621Z",
       "settings": {
         "theme": "light",
@@ -305,43 +305,110 @@
     "users": 5,
     "messages": 18,
     "reports": 0,
-    "statuses": 31,
-    "status_views": 11,
+    "statuses": 35,
+    "status_views": 15,
     "groups": 1,
     "group_messages": 1,
     "support_messages": 2
   },
   "statuses": [
     {
-      "id": 30,
+      "id": 32,
       "user_id": 4,
       "user_name": "ahmed",
-      "user_avatar": "/uploads/1787490974956-c8c06509c563b303.png",
+      "user_avatar": "/uploads/1787575729055-f02edc11bfff0806.png",
       "type": "video",
       "text": "",
-      "file_url": "/uploads/1787493623812-0695deaae1fddfa9.mp4",
+      "file_url": "/uploads/1787657069649-c0a721bbed9940e9.mp4",
       "file_name": "WhatsApp Video 2026-08-14 at 18.16.16.mp4",
       "file_type": "video/mp4",
-      "media_url": "/uploads/1787493623812-0695deaae1fddfa9.mp4",
+      "media_url": "/uploads/1787657069649-c0a721bbed9940e9.mp4",
       "media_name": "WhatsApp Video 2026-08-14 at 18.16.16.mp4",
       "media_type": "video/mp4",
-      "created_at": "2026-08-23T14:00:23.878Z",
-      "expires_at": "2026-08-24T14:00:23.878Z",
-      "views": 2
+      "created_at": "2026-08-25T11:24:29.718Z",
+      "expires_at": "2026-08-26T11:24:29.718Z",
+      "views": 1,
+      "display_seconds": 30
+    },
+    {
+      "id": 33,
+      "user_id": 4,
+      "user_name": "ahmed",
+      "user_avatar": "/uploads/1787575729055-f02edc11bfff0806.png",
+      "type": "image",
+      "text": "",
+      "file_url": "/uploads/1787657193804-837dd81718362df1.png",
+      "file_name": "ChatGPT Image Aug 13, 2026, 03_42_01 PM.png",
+      "file_type": "image/png",
+      "media_url": "/uploads/1787657193804-837dd81718362df1.png",
+      "media_name": "ChatGPT Image Aug 13, 2026, 03_42_01 PM.png",
+      "media_type": "image/png",
+      "created_at": "2026-08-25T11:26:33.816Z",
+      "expires_at": "2026-08-26T11:26:33.816Z",
+      "views": 1,
+      "display_seconds": 30
+    },
+    {
+      "id": 34,
+      "user_id": 4,
+      "user_name": "ahmed",
+      "user_avatar": "/uploads/1787575729055-f02edc11bfff0806.png",
+      "type": "video",
+      "text": "",
+      "file_url": "/uploads/1787657204355-d0bec778c5b16f34.mp4",
+      "file_name": "WhatsApp Video 2026-08-14 at 18.16.16.mp4",
+      "file_type": "video/mp4",
+      "media_url": "/uploads/1787657204355-d0bec778c5b16f34.mp4",
+      "media_name": "WhatsApp Video 2026-08-14 at 18.16.16.mp4",
+      "media_type": "video/mp4",
+      "created_at": "2026-08-25T11:26:44.416Z",
+      "expires_at": "2026-08-26T11:26:44.416Z",
+      "views": 1,
+      "display_seconds": 30
+    },
+    {
+      "id": 35,
+      "user_id": 4,
+      "user_name": "ahmed",
+      "user_avatar": "/uploads/1787575729055-f02edc11bfff0806.png",
+      "type": "text",
+      "text": "123456",
+      "file_url": "",
+      "file_name": "",
+      "file_type": "",
+      "media_url": "",
+      "media_name": "",
+      "media_type": "",
+      "created_at": "2026-08-25T11:26:57.762Z",
+      "expires_at": "2026-08-26T11:26:57.762Z",
+      "views": 1,
+      "display_seconds": 30
     }
   ],
   "status_views": [
     {
-      "id": 10,
-      "status_id": 30,
+      "id": 12,
+      "status_id": 32,
       "viewer_id": 3,
-      "created_at": "2026-08-23T14:00:43.987Z"
+      "created_at": "2026-08-25T11:28:15.148Z"
     },
     {
-      "id": 11,
-      "status_id": 30,
-      "viewer_id": 1,
-      "created_at": "2026-08-24T12:50:28.038Z"
+      "id": 13,
+      "status_id": 33,
+      "viewer_id": 3,
+      "created_at": "2026-08-25T11:28:16.627Z"
+    },
+    {
+      "id": 14,
+      "status_id": 34,
+      "viewer_id": 3,
+      "created_at": "2026-08-25T11:28:17.194Z"
+    },
+    {
+      "id": 15,
+      "status_id": 35,
+      "viewer_id": 3,
+      "created_at": "2026-08-25T11:28:17.614Z"
     }
   ],
   "groups": [

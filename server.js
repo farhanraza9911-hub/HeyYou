@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const session = require("express-session");
@@ -143,6 +143,24 @@ user.contacts =
 
 let db = loadDB();
 const passwordResetOtps = new Map();
+const registrationOtps = new Map();
+const rateBuckets = new Map();
+
+function rateLimit(key, limit, windowMs) {
+    const now = Date.now();
+    const item = rateBuckets.get(key);
+    if (!item || now - item.started >= windowMs) {
+        rateBuckets.set(key, { started: now, count: 1 });
+        return true;
+    }
+    if (item.count >= limit) return false;
+    item.count += 1;
+    return true;
+}
+
+function requestIp(req) {
+    return String(req.ip || req.headers["x-forwarded-for"] || "unknown").split(",")[0].trim();
+}
 
 function saveDB() {
     try {
@@ -197,55 +215,6 @@ function normalizeSettings(settings) {
     };
 }
 
-/* =====================================================
-   DEFAULT ADMIN
-===================================================== */
-
-if (
-    !db.users.some(
-        user =>
-            user.email === "farhanraza9911@gmail.com"
-    )
-) {
-    const admin = {
-        id: nextId("users"),
-
-        name: "HeyYou Admin",
-
-        email: "farhanraza9911@gmail.com",
-
-        password: bcrypt.hashSync(
-            "344655farhan",
-            10
-        ),
-
-        avatar: "",
-
-        bio: "",
-
-        role: "admin",
-
-        status: "offline",
-
-        created_at:
-            new Date().toISOString(),
-
-        settings:
-            defaultSettings(),
-
-        blocked_users: []
-
-    };
-
-    db.users.push(admin);
-
-    saveDB();
-
-    console.log(
-        "Default admin created: farhanraza9911@gmail.com / 344655farhan"
-    );
-}
-
 /*
  * Normalize all existing users.
  * This does NOT remove existing user records.
@@ -264,96 +233,45 @@ for (const user of db.users) {
    DEFAULT ADMIN
 ===================================================== */
 
-const ADMIN_EMAIL =
-    "farhanraza9911@gmail.com";
+const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "");
 
-const ADMIN_PASSWORD =
-    "344655farhan";
-
-let adminUser =
-    db.users.find(
-        user =>
-            user.role === "admin"
-    );
+let adminUser = db.users.find(user => user.role === "admin");
 
 if (!adminUser) {
-
-    adminUser = {
-        id: nextId("users"),
-
-        name: "HeyYou Admin",
-
-        email:
-            ADMIN_EMAIL,
-
-        password:
-            bcrypt.hashSync(
-                ADMIN_PASSWORD,
-                10
-            ),
-
-        avatar: "",
-
-        bio: "",
-
-        role: "admin",
-
-        status: "offline",
-
-        created_at:
-            new Date().toISOString(),
-
-        settings:
-            defaultSettings(),
-
-        blocked_users: []
-    };
-
-    db.users.push(
-        adminUser
-    );
-
+    if (ADMIN_EMAIL && ADMIN_PASSWORD.length >= 8) {
+        adminUser = {
+            id: nextId("users"),
+            name: "HeyYou Admin",
+            email: ADMIN_EMAIL,
+            password: bcrypt.hashSync(ADMIN_PASSWORD, 12),
+            avatar: "",
+            bio: "",
+            role: "admin",
+            status: "offline",
+            created_at: new Date().toISOString(),
+            settings: defaultSettings(),
+            blocked_users: [],
+            contacts: []
+        };
+        db.users.push(adminUser);
+        saveDB();
+        console.log("Admin created from ADMIN_EMAIL environment variable.");
+    } else {
+        console.log("WARNING: No admin account was created. Set ADMIN_EMAIL and ADMIN_PASSWORD in production.");
+    }
 } else {
-
-    /*
-     * Update existing admin
-     * to the new credentials.
-     */
-
-    adminUser.name =
-        "HeyYou Admin";
-
-    adminUser.email =
-        ADMIN_EMAIL;
-
-    adminUser.password =
-        bcrypt.hashSync(
-            ADMIN_PASSWORD,
-            10
-        );
-
-    adminUser.role =
-        "admin";
-
-    adminUser.settings =
-        normalizeSettings(
-            adminUser.settings
-        );
-
-    adminUser.blocked_users =
-        Array.isArray(
-            adminUser.blocked_users
-        )
-            ? adminUser.blocked_users
-            : [];
+    adminUser.settings = normalizeSettings(adminUser.settings);
+    adminUser.blocked_users = Array.isArray(adminUser.blocked_users) ? adminUser.blocked_users : [];
+    adminUser.contacts = Array.isArray(adminUser.contacts) ? adminUser.contacts : [];
+    // Only change admin credentials when explicitly supplied via environment variables.
+    if (ADMIN_EMAIL) adminUser.email = ADMIN_EMAIL;
+    if (ADMIN_PASSWORD.length >= 8) adminUser.password = bcrypt.hashSync(ADMIN_PASSWORD, 12);
+    adminUser.role = "admin";
+    saveDB();
 }
 
-saveDB();
-
-console.log(
-    "Admin ready:",
-    ADMIN_EMAIL
-);
+if (adminUser) console.log("Admin ready:", adminUser.email);
 
 /*
  * Normalize all existing users.
@@ -394,29 +312,22 @@ app.use(
     })
 );
 
-app.use(
-    session({
-        secret:
-            process.env.SESSION_SECRET ||
-            "heyyou-super-secret-change-this",
+app.set("trust proxy", 1);
 
-        resave: false,
+const sessionMiddleware = session({
+    secret:
+        String(process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex")),
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production" || process.env.RENDER === "true",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    }
+});
 
-        saveUninitialized: false,
-
-        cookie: {
-            httpOnly: true,
-            sameSite: "lax",
-            secure: false,
-            maxAge:
-                7 *
-                24 *
-                60 *
-                60 *
-                1000
-        }
-    })
-);
+app.use(sessionMiddleware);
 
 app.use(
     "/uploads",
@@ -457,35 +368,13 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage,
-
-    limits: {
-        fileSize:
-            100 *
-            1024 *
-            1024
-    },
-
-    fileFilter: (
-        req,
-        file,
-        cb
-    ) => {
-        const allowed =
-            /\.(jpg|jpeg|png|gif|webp|bmp|svg|mp4|webm|mov|avi|mkv|mp3|wav|m4a|ogg|aac|pdf|doc|docx|xls|xlsx|xlsm|ods|odt|odp|ppt|pptx|txt|csv|zip|rar|7z)$/i;
-
-        if (
-            allowed.test(
-                file.originalname
-            )
-        ) {
-            cb(null, true);
-        } else {
-            cb(
-                new Error(
-                    "File type not allowed."
-                )
-            );
-        }
+    limits: { fileSize: 100 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname || "").toLowerCase();
+        const allowedExt = /\.(jpg|jpeg|png|gif|webp|bmp|mp4|webm|mov|avi|mkv|mp3|wav|m4a|ogg|aac|pdf|doc|docx|xls|xlsx|xlsm|ods|odt|odp|ppt|pptx|txt|csv)$/i;
+        const allowedMime = /^(image\/(jpeg|png|gif|webp|bmp)|video\/(mp4|webm|quicktime|x-msvideo)|audio\/(mpeg|wav|mp4|ogg|aac|x-m4a)|application\/(pdf|msword|vnd\.openxmlformats-officedocument\.wordprocessingml\.document|vnd\.ms-excel|vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet|vnd\.oasis\.opendocument\.(spreadsheet|text|presentation)|vnd\.ms-powerpoint|vnd\.openxmlformats-officedocument\.presentationml\.presentation)|text\/(plain|csv))$/i;
+        if (allowedExt.test(ext) && (allowedMime.test(file.mimetype || "") || /^application\/octet-stream$/i.test(file.mimetype || ""))) cb(null, true);
+        else cb(new Error("File type not allowed."));
     }
 });
 
@@ -750,183 +639,58 @@ function isBlocked(
 }
 
 /* =====================================================
+   REGISTER EMAIL OTP
+===================================================== */
+
+app.post("/api/register/request-otp", async (req, res) => {
+    try {
+        const ip = requestIp(req);
+        const name = String(req.body?.name || "").trim();
+        const email = String(req.body?.email || "").trim().toLowerCase();
+        const phone = normalizePhone(req.body?.phone || req.body?.mobile || "");
+        const password = String(req.body?.password || "");
+        if (!rateLimit("register:" + ip, 5, 15 * 60 * 1000)) return res.status(429).json({error:"Too many registration attempts. Please try again later."});
+        if (!name || password.length < 6 || !email || !phone) return res.status(400).json({error:"Name, Gmail/email, mobile number and password are required."});
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({error:"Please enter a valid email address."});
+        if (!isValidPhone(phone)) return res.status(400).json({error:"Please enter a valid mobile number with country code."});
+        if (db.users.some(u => String(u.email || "").toLowerCase() === email)) return res.status(400).json({error:"Email already exists."});
+        if (db.users.some(u => normalizePhone(u.phone || "") === phone)) return res.status(400).json({error:"Mobile number already exists."});
+        const otp = String(crypto.randomInt(100000, 1000000));
+        await sendEmailOtp(email, otp, "HeyYou registration OTP", `Your HeyYou registration OTP is ${otp}. It expires in 10 minutes.`);
+        registrationOtps.set(email, { otp, expires: Date.now() + 10 * 60 * 1000, attempts: 0, name, phone, passwordHash: bcrypt.hashSync(password, 12) });
+        res.json({ok:true, message:"OTP sent to your email."});
+    } catch (error) {
+        console.log("REGISTRATION OTP ERROR:", error);
+        res.status(500).json({error:"Could not send registration OTP. Check your email service settings."});
+    }
+});
+
+app.post("/api/register/verify", (req, res) => {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const otp = String(req.body?.otp || "").trim();
+    const record = registrationOtps.get(email);
+    if (!record || Date.now() > record.expires) { registrationOtps.delete(email); return res.status(400).json({error:"OTP expired. Request a new OTP."}); }
+    if (record.attempts >= 5) { registrationOtps.delete(email); return res.status(429).json({error:"Too many incorrect attempts. Request a new OTP."}); }
+    if (record.otp !== otp) { record.attempts += 1; return res.status(400).json({error:"Invalid OTP."}); }
+    if (db.users.some(u => String(u.email || "").toLowerCase() === email)) { registrationOtps.delete(email); return res.status(400).json({error:"Email already exists."}); }
+    if (db.users.some(u => normalizePhone(u.phone || "") === record.phone)) { registrationOtps.delete(email); return res.status(400).json({error:"Mobile number already exists."}); }
+    const user = { id: nextId("users"), name: record.name, email, phone: record.phone, password: record.passwordHash, avatar:"", bio:"", role:"user", is_blocked:false, status:"online", created_at:new Date().toISOString(), settings:defaultSettings(), blocked_users:[], contacts:[] };
+    db.users.push(user);
+    registrationOtps.delete(email);
+    saveDB();
+    req.session.user = publicUser(user);
+    res.json({ok:true, user:publicUser(user)});
+});
+
+/* =====================================================
    REGISTER
-   Email/Gmail OR Mobile Number
+   Email/Gmail AND Mobile Number
 ===================================================== */
 
 app.post(
     "/api/register",
     (req, res) => {
-        try {
-            const name =
-                String(
-                    req.body.name || ""
-                ).trim();
-
-            const email =
-                String(
-                    req.body.email || ""
-                )
-                    .trim()
-                    .toLowerCase();
-
-            const phone =
-                normalizePhone(
-                    req.body.phone ||
-                    req.body.mobile ||
-                    ""
-                );
-
-            const password =
-                String(
-                    req.body.password || ""
-                );
-
-            /*
-             * User must provide either
-             * email OR phone number.
-             */
-            if (
-                !name ||
-                password.length < 6 ||
-                (!email && !phone)
-            ) {
-                return res.status(400).json({
-                    error:
-                        "Name, email or mobile number, and 6+ character password required"
-                });
-            }
-
-            /*
-             * Basic email validation
-             * only when email is provided.
-             */
-            if (
-                email &&
-                !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-                    email
-                )
-            ) {
-                return res.status(400).json({
-                    error:
-                        "Please enter a valid email address"
-                });
-            }
-
-            /*
-             * Phone validation
-             * only when phone is provided.
-             */
-            if (
-                phone &&
-                !isValidPhone(phone)
-            ) {
-                return res.status(400).json({
-                    error:
-                        "Please enter a valid mobile number with country code"
-                });
-            }
-
-            /*
-             * Check duplicate email.
-             */
-            if (
-                email &&
-                db.users.some(
-                    user =>
-                        String(
-                            user.email || ""
-                        )
-                            .toLowerCase() ===
-                        email
-                )
-            ) {
-                return res.status(400).json({
-                    error:
-                        "Email already exists"
-                });
-            }
-
-            /*
-             * Check duplicate phone.
-             */
-            if (
-                phone &&
-                db.users.some(
-                    user =>
-                        normalizePhone(
-                            user.phone || ""
-                        ) === phone
-                )
-            ) {
-                return res.status(400).json({
-                    error:
-                        "Mobile number already exists"
-                });
-            }
-
-            const user = {
-                id: nextId("users"),
-
-                name,
-
-                email:
-                    email || "",
-
-                phone:
-                    phone || "",
-
-                password:
-                    bcrypt.hashSync(
-                        password,
-                        10
-                    ),
-
-                avatar: "",
-
-                bio: "",
-
-                role: "user",
-
-                is_blocked: false,
-
-                status: "online",
-
-                created_at:
-                    new Date().toISOString(),
-
-                settings:
-                    defaultSettings(),
-
-                blocked_users: []
-            };
-
-            db.users.push(user);
-
-            saveDB();
-
-            req.session.user =
-                publicUser(user);
-
-            res.json({
-                ok: true,
-
-                user:
-                    publicUser(user)
-            });
-
-        } catch (error) {
-
-            console.log(
-                "REGISTER ERROR:",
-                error
-            );
-
-            res.status(500).json({
-                error:
-                    "Registration failed"
-            });
-        }
+        return res.status(400).json({error:"Email verification is required. Please request and verify the registration OTP."});
     }
 );
 
@@ -934,28 +698,12 @@ app.post(
    PASSWORD RESET VIA EMAIL OTP
 ===================================================== */
 
-async function sendPasswordResetOtp(email, otp) {
+async function sendEmailOtp(email, otp, subject, textContent) {
     const apiKey = String(process.env.BREVO_API_KEY || "").trim();
     const senderEmail = String(process.env.BREVO_SENDER_EMAIL || "").trim();
     const senderName = String(process.env.BREVO_SENDER_NAME || "HeyYou").trim();
-
-    if (!apiKey || !senderEmail) {
-        throw new Error("BREVO_API_KEY or BREVO_SENDER_EMAIL is missing on Render.");
-    }
-
-    const payload = {
-        sender: {
-            email: senderEmail,
-            name: senderName
-        },
-        to: [
-            {
-                email
-            }
-        ],
-        subject: "HeyYou password reset OTP",
-        textContent: `Your HeyYou password reset OTP is ${otp}. It expires in 10 minutes.`
-    };
+    if (!apiKey || !senderEmail) throw new Error("BREVO_API_KEY or BREVO_SENDER_EMAIL is missing on Render.");
+    const payload = { sender:{ email:senderEmail, name:senderName }, to:[{email}], subject, textContent };
 
     const response = await fetch("https://api.brevo.com/v3/smtp/email", {
         method: "POST",
@@ -989,6 +737,7 @@ async function sendPasswordResetOtp(email, otp) {
 
 app.post("/api/password-reset/request", async (req, res) => {
     try {
+        if (!rateLimit("reset-ip:" + requestIp(req), 5, 15 * 60 * 1000)) return res.status(429).json({error:"Too many OTP requests. Please try again later."});
         const email = String(req.body?.email || "").trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             return res.status(400).json({error:"Enter a valid Gmail/email address."});
@@ -1000,7 +749,7 @@ app.post("/api/password-reset/request", async (req, res) => {
         const record = {otp, expires:Date.now()+10*60*1000, attempts:0};
         // Only create the reset session after Gmail accepts the message.
         // This prevents a failed SMTP send from leaving the UI waiting for an OTP.
-        await sendPasswordResetOtp(email, otp);
+        await sendEmailOtp(email, otp, "HeyYou password reset OTP", `Your HeyYou password reset OTP is ${otp}. It expires in 10 minutes.`);
         passwordResetOtps.set(email, record);
         res.json({ok:true, message:"OTP sent to your email."});
     } catch(error) {
@@ -1064,6 +813,7 @@ app.post(
     "/api/login",
     (req, res) => {
         try {
+            if (!rateLimit("login:" + requestIp(req), 10, 15 * 60 * 1000)) return res.status(429).json({error:"Too many login attempts. Please try again later."});
             const loginValue =
     String(
         req.body.email ||
@@ -2484,7 +2234,9 @@ function normalizeStatus(status) {
             status.expires_at,
 
         views:
-            Number(status.views || 0)
+            Number(status.views || 0),
+        display_seconds:
+            Math.min(30, Math.max(1, Number(status.display_seconds || 30)))
     };
 }
 
@@ -2868,8 +2620,10 @@ function publishStatusHandler(
 
 
         /*
-         * Maximum 10 active statuses
-         * per user
+         * Maximum 5 active statuses per user.
+         * Each status remains visible for 30 seconds
+         * while it is being viewed, and expires from
+         * the feed after 24 hours.
          */
 
         let userStatuses =
@@ -2882,7 +2636,7 @@ function publishStatusHandler(
             });
 
 
-        if (userStatuses.length >= 10) {
+        if (userStatuses.length >= 5) {
 
             userStatuses.sort((a, b) => {
 
@@ -3026,7 +2780,8 @@ function publishStatusHandler(
             expires_at:
                 expiresAt.toISOString(),
 
-            views: 0
+            views: 0,
+            display_seconds: 30
         };
 
 
@@ -3946,6 +3701,18 @@ function socketsFor(
    SOCKET.IO
 ===================================================== */
 
+// Bind the same authenticated Express session to Socket.IO so a client
+// cannot impersonate another user's ID by emitting a forged auth event.
+io.engine.use(sessionMiddleware);
+io.use((socket, next) => {
+    const sessionUser = socket.request?.session?.user;
+    if (!sessionUser?.id) return next(new Error("Authentication required"));
+    const user = db.users.find(u => Number(u.id) === Number(sessionUser.id));
+    if (!user || user.is_blocked) return next(new Error("Authentication rejected"));
+    socket.userId = Number(user.id);
+    next();
+});
+
 io.on(
     "connection",
     socket => {
@@ -3961,29 +3728,15 @@ io.on(
         socket.on(
             "auth",
             userId => {
-                const id =
-                    Number(userId);
-
-                if (!id) {
+                const sessionId = Number(socket.request?.session?.user?.id || 0);
+                const requestedId = Number(userId || 0);
+                if (!sessionId || (requestedId && requestedId !== sessionId)) {
+                    socket.emit("auth-error", {error:"Socket authentication rejected."});
                     return;
                 }
-
-                if (
-                    socket.userId
-                ) {
-                    removeSocket(
-                        socket.userId,
-                        socket.id
-                    );
-                }
-
-                socket.userId =
-                    id;
-
-                addSocket(
-                    id,
-                    socket.id
-                );
+                if (socket.userId && socket.userId !== sessionId) removeSocket(socket.userId, socket.id);
+                socket.userId = sessionId;
+                addSocket(sessionId, socket.id);
             }
         );
 
@@ -4020,7 +3773,8 @@ io.on(
                     !to ||
                     (
                         !text &&
-                        !fileUrl
+                        !fileUrl &&
+                        !Number(data?.contact_id || data?.contactId || 0)
                     )
                 ) {
                     return;
@@ -4058,6 +3812,17 @@ io.on(
                             )
                     );
 
+                const contactId = Number(data?.contact_id || data?.contactId || 0);
+                const senderContacts = db.users.find(u => Number(u.id) === Number(socket.userId))?.contacts || [];
+                if (contactId && !senderContacts.some(id => Number(id) === contactId)) {
+                    socket.emit("message-error", {error:"Only saved contacts can be shared."});
+                    return;
+                }
+                const sharedContact = contactId ? db.users.find(u => Number(u.id) === contactId) : null;
+                if (contactId && !sharedContact) {
+                    socket.emit("message-error", {error:"Contact not found."});
+                    return;
+                }
                 const message = {
                     id:
                         nextId(
@@ -4073,6 +3838,11 @@ io.on(
                         to,
 
                     text,
+                    contact_id: sharedContact ? Number(sharedContact.id) : 0,
+                    contact_name: sharedContact?.name || "",
+                    contact_email: sharedContact?.email || "",
+                    contact_phone: sharedContact?.phone || "",
+                    contact_avatar: sharedContact?.avatar || "",
 
                     file_url:
                         fileUrl,
@@ -4129,8 +3899,13 @@ io.on(
             if (!socket.userId) return;
             const groupId = Number(data?.group_id);
             const text = String(data?.text || "").trim();
+            const contactId = Number(data?.contact_id || data?.contactId || 0);
             const group = (db.groups || []).find(g => Number(g.id) === groupId);
-            if (!group || !groupForUser(group, socket.userId) || !text) return;
+            if (!group || !groupForUser(group, socket.userId)) return;
+            const senderContacts = db.users.find(u => Number(u.id) === Number(socket.userId))?.contacts || [];
+            if (contactId && !senderContacts.some(id => Number(id) === contactId)) return;
+            const sharedContact = contactId ? db.users.find(u => Number(u.id) === contactId) : null;
+            if (!text && !sharedContact) return;
 
             const sender = db.users.find(u => Number(u.id) === Number(socket.userId));
             const message = {
@@ -4139,6 +3914,11 @@ io.on(
                 sender_id: Number(socket.userId),
                 sender_name: sender?.name || "",
                 text,
+                contact_id: sharedContact ? Number(sharedContact.id) : 0,
+                contact_name: sharedContact?.name || "",
+                contact_email: sharedContact?.email || "",
+                contact_phone: sharedContact?.phone || "",
+                contact_avatar: sharedContact?.avatar || "",
                 created_at: new Date().toISOString()
             };
             db.group_messages.push(message);
