@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
 
 const UPLOADS = path.join(ROOT, "uploads");
-const DATA = process.env.HEYYOU_DATA_DIR ? path.resolve(process.env.HEYYOU_DATA_DIR) : path.join(ROOT, "data");
+const DATA = process.env.HEYYOU_DATA_DIR ? path.resolve(process.env.HEYYOU_DATA_DIR) : (process.env.RENDER === "true" ? path.join("/var", "data") : path.join(ROOT, "data"));
 const DB_FILE = path.join(DATA, "heyyou.json");
 
 fs.mkdirSync(UPLOADS, { recursive: true });
@@ -164,16 +164,17 @@ function requestIp(req) {
 
 function saveDB() {
     try {
-        fs.writeFileSync(
-            DB_FILE,
-            JSON.stringify(db, null, 2),
-            "utf8"
-        );
+        const json = JSON.stringify(db, null, 2);
+        const tempFile = DB_FILE + ".tmp";
+        fs.writeFileSync(tempFile, json, "utf8");
+        fs.renameSync(tempFile, DB_FILE);
+        return true;
     } catch (error) {
-        console.log(
+        console.error(
             "DATABASE SAVE ERROR:",
             error.message
         );
+        return false;
     }
 }
 
@@ -671,41 +672,40 @@ app.post("/api/register/verify", (req, res) => {
         const otp = String(req.body?.otp || "").trim();
 
         if (!email || !otp) {
-            return res.status(400).json({ error: "Email and OTP are required." });
+            return res.status(400).json({error:"Email and OTP are required."});
         }
 
         const record = registrationOtps.get(email);
-
         if (!record) {
-            return res.status(400).json({ error: "OTP expired or not requested." });
+            return res.status(400).json({error:"OTP expired or not requested."});
         }
 
-        if (Date.now() > (record.expiresAt || record.expires)) {
+        const expiresAt = Number(record.expires || record.expiresAt || 0);
+        if (!expiresAt || Date.now() > expiresAt) {
             registrationOtps.delete(email);
-            return res.status(400).json({ error: "OTP expired. Please request a new OTP." });
+            return res.status(400).json({error:"OTP expired. Please request a new OTP."});
         }
 
-        record.attempts = Number(record.attempts || 0) + 1;
-
-        if (record.attempts > 5 || String(record.otp) !== otp) {
-            if (record.attempts > 5) registrationOtps.delete(email);
-            return res.status(400).json({ error: "Invalid OTP." });
+        if (Number(record.attempts || 0) >= 5) {
+            registrationOtps.delete(email);
+            return res.status(429).json({error:"Too many incorrect attempts. Request a new OTP."});
         }
 
+        if (String(record.otp || "") !== otp) {
+            record.attempts = Number(record.attempts || 0) + 1;
+            registrationOtps.set(email, record);
+            return res.status(400).json({error:"Invalid OTP."});
+        }
+
+        const registrationPhone = normalizePhone(record.phone || record.mobile || "");
         const duplicateEmail = db.users.some(
             u => String(u.email || "").trim().toLowerCase() === email
         );
+        const duplicatePhone = registrationPhone && db.users.some(
+            u => normalizePhone(u.phone || u.mobile || "") === registrationPhone
+        );
 
-        const registrationMobile = String(
-            record.mobile || record.phone || ""
-        ).trim();
-
-        const duplicateMobile = registrationMobile &&
-            db.users.some(
-                u => String(u.mobile || u.phone || "").trim() === registrationMobile
-            );
-
-        if (duplicateEmail || duplicateMobile) {
+        if (duplicateEmail || duplicatePhone) {
             registrationOtps.delete(email);
             return res.status(409).json({
                 error: duplicateEmail
@@ -714,30 +714,59 @@ app.post("/api/register/verify", (req, res) => {
             });
         }
 
-        const newUser = {
-            id: Date.now(),
+        // Store the bcrypt hash created when the registration OTP was requested.
+        // Never store the user's plain-text password.
+        const passwordHash = String(record.passwordHash || record.password || "");
+        if (!passwordHash) {
+            registrationOtps.delete(email);
+            return res.status(400).json({error:"Registration session is invalid. Please register again."});
+        }
+
+        const user = {
+            id: nextId("users"),
             name: String(record.name || "").trim(),
             email,
-            mobile: registrationMobile,
-            phone: registrationMobile,
-            password: record.password || record.passwordHash,
+            phone: registrationPhone,
+            mobile: registrationPhone,
+            password: passwordHash,
+            avatar: "",
+            bio: "",
             profilePic: "",
             about: "",
-            createdAt: new Date().toISOString()
+            role: "user",
+            is_blocked: false,
+            status: "online",
+            created_at: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            settings: defaultSettings(),
+            blocked_users: [],
+            contacts: []
         };
 
-        db.users.push(newUser);
-        saveDatabase();
+        db.users.push(user);
+
+        // This is the critical persistence step. If the database cannot be written,
+        // roll the in-memory user back so registration cannot appear successful.
+        if (!saveDB()) {
+            db.users.pop();
+            db.seq.users = Math.max(0, Number(db.seq.users || 1) - 1);
+            return res.status(500).json({
+                error:"Account could not be saved permanently. Please try again."
+            });
+        }
+
         registrationOtps.delete(email);
+        req.session.user = publicUser(user);
 
         return res.json({
+            ok: true,
             success: true,
-            message: "Registration successful.",
-            user: publicUser(newUser)
+            message:"Registration successful.",
+            user: publicUser(user)
         });
     } catch (error) {
         console.error("REGISTRATION OTP VERIFY ERROR:", error);
-        return res.status(500).json({ error: "Registration failed. Please try again." });
+        return res.status(500).json({error:"Registration failed. Please try again."});
     }
 });
 
@@ -868,6 +897,157 @@ app.post("/api/password-reset/complete", (req, res) => {
     saveDB();
     res.json({ok:true, message:"Password reset successfully."});
 });
+
+/* =====================================================
+   SEPARATE ADMIN LOGIN + PASSWORD RESET
+===================================================== */
+
+app.post("/api/admin/login", (req, res) => {
+    try {
+        if (!rateLimit("admin-login:" + requestIp(req), 10, 15 * 60 * 1000)) {
+            return res.status(429).json({error:"Too many admin login attempts. Please try again later."});
+        }
+
+        const email = String(req.body?.email || "").trim().toLowerCase();
+        const password = String(req.body?.password || "");
+
+        const admin = db.users.find(
+            user =>
+                user.role === "admin" &&
+                String(user.email || "").trim().toLowerCase() === email
+        );
+
+        if (!admin || !bcrypt.compareSync(password, admin.password || "")) {
+            return res.status(401).json({error:"Invalid admin email or password."});
+        }
+
+        admin.status = "online";
+        saveDB();
+
+        req.session.user = publicUser(admin);
+
+        res.json({
+            ok: true,
+            user: publicUser(admin)
+        });
+    } catch (error) {
+        console.error("ADMIN LOGIN ERROR:", error);
+        res.status(500).json({error:"Admin login failed."});
+    }
+});
+
+app.post("/api/admin/password-reset/request", async (req, res) => {
+    try {
+        if (!rateLimit("admin-reset:" + requestIp(req), 5, 15 * 60 * 1000)) {
+            return res.status(429).json({error:"Too many admin password reset attempts. Please try again later."});
+        }
+
+        const email = String(req.body?.email || "").trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({error:"Enter a valid admin email address."});
+        }
+
+        const admin = db.users.find(
+            user =>
+                user.role === "admin" &&
+                String(user.email || "").trim().toLowerCase() === email
+        );
+
+        if (!admin) {
+            return res.status(404).json({error:"No admin account is registered with this email."});
+        }
+
+        const otp = String(crypto.randomInt(100000, 1000000));
+        const record = {
+            otp,
+            expires: Date.now() + 10 * 60 * 1000,
+            attempts: 0,
+            admin: true
+        };
+
+        await sendEmailOtp(
+            email,
+            otp,
+            "HeyYou admin password reset OTP",
+            `Your HeyYou admin password reset OTP is ${otp}. It expires in 10 minutes.`
+        );
+
+        passwordResetOtps.set("admin:" + email, record);
+        res.json({ok:true, message:"Admin reset OTP sent to your email."});
+    } catch (error) {
+        console.error("ADMIN PASSWORD RESET OTP ERROR:", error);
+        const detail = String(error && error.message || "");
+        let message = "Could not send admin OTP. Check Gmail SMTP settings on Render.";
+        if (/Invalid login|Username and Password not accepted|BadCredentials|authentication/i.test(detail)) {
+            message = "Gmail rejected the login. Check GMAIL_USER and GMAIL_APP_PASSWORD on Render.";
+        } else if (/ENOTFOUND|ECONN|ETIMEDOUT|EAI_AGAIN/i.test(detail)) {
+            message = "Gmail connection failed. Please try again in a moment.";
+        }
+        res.status(500).json({error:message});
+    }
+});
+
+app.post("/api/admin/password-reset/verify", (req, res) => {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const otp = String(req.body?.otp || "").trim();
+    const key = "admin:" + email;
+    const record = passwordResetOtps.get(key);
+
+    if (!record || !record.admin || Date.now() > record.expires) {
+        passwordResetOtps.delete(key);
+        return res.status(400).json({error:"OTP expired. Request a new admin OTP."});
+    }
+
+    if (record.attempts >= 5) {
+        passwordResetOtps.delete(key);
+        return res.status(429).json({error:"Too many incorrect attempts. Request a new OTP."});
+    }
+
+    if (record.otp !== otp) {
+        record.attempts += 1;
+        return res.status(400).json({error:"Invalid OTP."});
+    }
+
+    record.resetToken = crypto.randomBytes(32).toString("hex");
+    record.verifiedUntil = Date.now() + 10 * 60 * 1000;
+    passwordResetOtps.set(key, record);
+
+    res.json({ok:true, resetToken:record.resetToken});
+});
+
+app.post("/api/admin/password-reset/complete", (req, res) => {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const token = String(req.body?.resetToken || "").trim();
+    const password = String(req.body?.password || "");
+    const key = "admin:" + email;
+    const record = passwordResetOtps.get(key);
+
+    if (!record || !record.admin || record.resetToken !== token || Date.now() > (record.verifiedUntil || 0)) {
+        return res.status(400).json({error:"Admin password reset session expired. Verify the OTP again."});
+    }
+
+    if (password.length < 8) {
+        return res.status(400).json({error:"Admin password must be at least 8 characters."});
+    }
+
+    const admin = db.users.find(
+        user =>
+            user.role === "admin" &&
+            String(user.email || "").trim().toLowerCase() === email
+    );
+
+    if (!admin) {
+        passwordResetOtps.delete(key);
+        return res.status(404).json({error:"Admin account not found."});
+    }
+
+    admin.password = bcrypt.hashSync(password, 12);
+    passwordResetOtps.delete(key);
+    saveDB();
+
+    res.json({ok:true, message:"Admin password reset successfully."});
+});
+
 
 /* =====================================================
    LOGIN

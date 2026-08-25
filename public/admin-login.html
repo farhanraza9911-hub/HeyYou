@@ -1,1 +1,43 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HeyYou Admin Login</title><style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f3f5f7;font-family:Arial}.box{width:min(420px,90vw);background:#fff;padding:28px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.12)}h1{text-align:center}.field{width:100%;padding:12px;margin:8px 0;box-sizing:border-box;border:1px solid #ccc;border-radius:8px}button{width:100%;padding:12px;border:0;border-radius:8px;background:#128c7e;color:#fff;font-weight:bold;cursor:pointer}#msg{text-align:center;min-height:22px;margin-top:12px;color:#c00}</style></head><body><div class="box"><h1>HeyYou Admin</h1><input id="email" class="field" type="email" placeholder="Admin email" autocomplete="username"><input id="password" class="field" type="password" placeholder="Admin password" autocomplete="current-password"><button id="login" onclick="adminLogin()">Login</button><div id="msg"></div></div><script>async function adminLogin(){const email=document.getElementById('email').value.trim(),password=document.getElementById('password').value,msg=document.getElementById('msg'),b=document.getElementById('login');if(!email||!password){msg.textContent='Enter admin email and password.';return}b.disabled=true;msg.textContent='Signing in...';try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({email,password})}),d=await r.json().catch(()=>({}));if(!r.ok){msg.textContent=d.error||'Login failed.';return}if(!d.user||d.user.role!=='admin'){await fetch('/api/logout',{method:'POST'});msg.textContent='Admin access required.';return}location.href='/admin'}catch(e){msg.textContent='Server connection error.'}finally{b.disabled=false}}document.getElementById('password').addEventListener('keydown',e=>{if(e.key==='Enter')adminLogin()});</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>HeyYou Admin Login</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f3f5f7;font-family:Arial,sans-serif;color:#222}
+.box{width:min(420px,92vw);background:#fff;padding:30px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.1)}
+h1{margin:0 0 8px;text-align:center;color:#128c7e}.sub{text-align:center;color:#777;margin-bottom:24px}
+input{width:100%;padding:13px;margin:7px 0;border:1px solid #ddd;border-radius:8px;font-size:15px}
+button{width:100%;padding:13px;margin-top:10px;border:0;border-radius:8px;background:#128c7e;color:#fff;font-size:16px;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.6}.links{display:flex;justify-content:space-between;margin-top:16px;font-size:14px}.links a{color:#128c7e;text-decoration:none}
+#msg{min-height:22px;text-align:center;margin-top:15px;color:#d00}
+</style>
+</head>
+<body>
+<div class="box">
+<h1>HeyYou Admin</h1>
+<div class="sub">Separate administrator access</div>
+<form id="form">
+<input id="email" type="email" placeholder="Admin email" autocomplete="username" required>
+<input id="password" type="password" placeholder="Admin password" autocomplete="current-password" required>
+<button id="btn" type="submit">Admin Login</button>
+</form>
+<div class="links"><a href="/admin-reset-password.html">Forgot password?</a><a href="/">User login</a></div>
+<div id="msg"></div>
+</div>
+<script>
+const msg=document.getElementById("msg");
+document.getElementById("form").addEventListener("submit",async e=>{
+ e.preventDefault(); msg.textContent=""; const btn=document.getElementById("btn"); btn.disabled=true; btn.textContent="Signing in...";
+ try{
+  const r=await fetch("/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},credentials:"same-origin",body:JSON.stringify({email:document.getElementById("email").value.trim(),password:document.getElementById("password").value})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok) msg.textContent=d.error||"Admin login failed.";
+  else location.href="/admin";
+ }catch(e){msg.textContent="Server connection error."}
+ finally{btn.disabled=false;btn.textContent="Admin Login";}
+});
+</script>
+</body>
+</html>
