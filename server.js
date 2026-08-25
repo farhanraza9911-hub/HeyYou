@@ -666,20 +666,73 @@ app.post("/api/register/request-otp", async (req, res) => {
 });
 
 app.post("/api/register/verify", (req, res) => {
-    const email = String(req.body?.email || "").trim().toLowerCase();
-    const otp = String(req.body?.otp || "").trim();
-    const record = registrationOtps.get(email);
-    if (!record || Date.now() > record.expires) { registrationOtps.delete(email); return res.status(400).json({error:"OTP expired. Request a new OTP."}); }
-    if (record.attempts >= 5) { registrationOtps.delete(email); return res.status(429).json({error:"Too many incorrect attempts. Request a new OTP."}); }
-    if (record.otp !== otp) { record.attempts += 1; return res.status(400).json({error:"Invalid OTP."}); }
-    if (db.users.some(u => String(u.email || "").toLowerCase() === email)) { registrationOtps.delete(email); return res.status(400).json({error:"Email already exists."}); }
-    if (db.users.some(u => normalizePhone(u.phone || "") === record.phone)) { registrationOtps.delete(email); return res.status(400).json({error:"Mobile number already exists."}); }
-    const user = { id: nextId("users"), name: record.name, email, phone: record.phone, password: record.passwordHash, avatar:"", bio:"", role:"user", is_blocked:false, status:"online", created_at:new Date().toISOString(), settings:defaultSettings(), blocked_users:[], contacts:[] };
-    db.users.push(user);
-    registrationOtps.delete(email);
-    saveDB();
-    req.session.user = publicUser(user);
-    res.json({ok:true, user:publicUser(user)});
+    try {
+        const email = String(req.body?.email || "").trim().toLowerCase();
+        const otp = String(req.body?.otp || "").trim();
+
+        if (!email || !otp) {
+            return res.status(400).json({ error: "Email and OTP are required." });
+        }
+
+        const record = registrationOtps.get(email);
+
+        if (!record) {
+            return res.status(400).json({ error: "OTP expired or not requested." });
+        }
+
+        if (Date.now() > record.expiresAt) {
+            registrationOtps.delete(email);
+            return res.status(400).json({ error: "OTP expired. Please request a new OTP." });
+        }
+
+        record.attempts = Number(record.attempts || 0) + 1;
+
+        if (record.attempts > 5 || String(record.otp) !== otp) {
+            if (record.attempts > 5) registrationOtps.delete(email);
+            return res.status(400).json({ error: "Invalid OTP." });
+        }
+
+        const duplicateEmail = db.users.some(
+            u => String(u.email || "").trim().toLowerCase() === email
+        );
+        const duplicateMobile = record.mobile &&
+            db.users.some(
+                u => String(u.mobile || "").trim() === String(record.mobile).trim()
+            );
+
+        if (duplicateEmail || duplicateMobile) {
+            registrationOtps.delete(email);
+            return res.status(409).json({
+                error: duplicateEmail
+                    ? "An account with this email already exists."
+                    : "An account with this mobile number already exists."
+            });
+        }
+
+        const newUser = {
+            id: Date.now(),
+            name: String(record.name || "").trim(),
+            email,
+            mobile: String(record.mobile || "").trim(),
+            password: record.password,
+            profilePic: "",
+            about: "",
+            createdAt: new Date().toISOString()
+        };
+
+        db.users.push(newUser);
+        saveDatabase();
+        registrationOtps.delete(email);
+
+        return res.json({
+            success: true,
+            message: "Registration successful.",
+            user: publicUser(newUser)
+        });
+    } catch (error) {
+        console.error("REGISTRATION OTP VERIFY ERROR:", error);
+        return res.status(500).json({ error: "Registration failed. Please try again." });
+    }
 });
 
 /* =====================================================
@@ -742,7 +795,12 @@ app.post("/api/password-reset/request", async (req, res) => {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             return res.status(400).json({error:"Enter a valid Gmail/email address."});
         }
-        const user = db.users.find(u => String(u.email || "").toLowerCase() === email);
+        const matchingUsers = db.users.filter(
+        u => String(u.email || "").toLowerCase() === email
+    );
+    const user = matchingUsers.length
+        ? matchingUsers[matchingUsers.length - 1]
+        : null;
         if (!user) return res.status(404).json({error:"No HeyYou account is registered with this email."});
 
         const otp = String(crypto.randomInt(100000, 1000000));
@@ -832,35 +890,36 @@ const normalizedLoginPhone =
                     req.body.password || ""
                 );
 
-          const user =
-    db.users.find(
+          const loginCandidates =
+    db.users.filter(
         item =>
             (
                 item.email &&
-                String(
-                    item.email
-                )
-                    .toLowerCase() ===
-                loginValue
+                String(item.email).toLowerCase() === loginValue
             ) ||
             (
                 normalizedLoginPhone &&
-                normalizePhone(
-                    item.phone || ""
-                ) ===
-                normalizedLoginPhone
+                normalizePhone(item.phone || "") === normalizedLoginPhone
             )
     );
 
-            if (
-                !user ||
-                !bcrypt.compareSync(
-                    password,
-                    user.password
-                )
-            ) {
+            let user = null;
+
+            for (const candidate of loginCandidates) {
+                if (!candidate.password) continue;
+                try {
+                    if (bcrypt.compareSync(password, candidate.password)) {
+                        user = candidate;
+                        break;
+                    }
+                } catch (e) {
+                    // Ignore malformed legacy hashes and continue.
+                }
+            }
+
+            if (!user) {
                 return res.status(401).json({
-                  error:
+                    error:
     "Invalid email/mobile or password"
                 });
             }
