@@ -17,8 +17,18 @@ const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
 
 const UPLOADS = path.join(ROOT, "uploads");
-const DATA = process.env.HEYYOU_DATA_DIR ? path.resolve(process.env.HEYYOU_DATA_DIR) : (process.env.RENDER === "true" ? path.join("/var", "data") : path.join(ROOT, "data"));
+const DATA = process.env.HEYYOU_DATA_DIR
+    ? path.resolve(process.env.HEYYOU_DATA_DIR)
+    : path.join(ROOT, "data");
+
 const DB_FILE = path.join(DATA, "heyyou.json");
+
+try {
+    fs.mkdirSync(DATA, { recursive: true });
+} catch (error) {
+    console.error("DATA DIRECTORY ERROR:", error);
+    process.exit(1);
+}
 
 fs.mkdirSync(UPLOADS, { recursive: true });
 fs.mkdirSync(DATA, { recursive: true });
