@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const session = require("express-session");
@@ -680,7 +680,7 @@ app.post("/api/register/verify", (req, res) => {
             return res.status(400).json({ error: "OTP expired or not requested." });
         }
 
-        if (Date.now() > record.expiresAt) {
+        if (Date.now() > (record.expiresAt || record.expires)) {
             registrationOtps.delete(email);
             return res.status(400).json({ error: "OTP expired. Please request a new OTP." });
         }
@@ -695,9 +695,14 @@ app.post("/api/register/verify", (req, res) => {
         const duplicateEmail = db.users.some(
             u => String(u.email || "").trim().toLowerCase() === email
         );
-        const duplicateMobile = record.mobile &&
+
+        const registrationMobile = String(
+            record.mobile || record.phone || ""
+        ).trim();
+
+        const duplicateMobile = registrationMobile &&
             db.users.some(
-                u => String(u.mobile || "").trim() === String(record.mobile).trim()
+                u => String(u.mobile || u.phone || "").trim() === registrationMobile
             );
 
         if (duplicateEmail || duplicateMobile) {
@@ -713,8 +718,9 @@ app.post("/api/register/verify", (req, res) => {
             id: Date.now(),
             name: String(record.name || "").trim(),
             email,
-            mobile: String(record.mobile || "").trim(),
-            password: record.password,
+            mobile: registrationMobile,
+            phone: registrationMobile,
+            password: record.password || record.passwordHash,
             profilePic: "",
             about: "",
             createdAt: new Date().toISOString()
@@ -4396,22 +4402,12 @@ app.use(
    ADMIN DASHBOARD PAGE
 ===================================================== */
 
-app.get(
-    "/admin",
-    requireAuth,
-    requireAdmin,
-    (req, res) => {
-
-        res.sendFile(
-            path.join(
-                ROOT,
-                "public",
-                "admin.html"
-            )
-        );
-
+app.get("/admin", (req, res) => {
+    if (req.session.user?.role === "admin") {
+        return res.sendFile(path.join(ROOT, "public", "admin.html"));
     }
-);
+    res.sendFile(path.join(ROOT, "public", "admin-login.html"));
+});
 
 /* =====================================================
    START SERVER
